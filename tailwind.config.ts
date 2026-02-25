@@ -13,7 +13,7 @@ const config: Config = {
         foreground: "var(--foreground)",
       },
       fontFamily: {
-        caveat: ["var(--font-caveat)", "cursive"],
+        nunito: ["var(--font-nunito)", "sans-serif"],
       },
     },
   },
