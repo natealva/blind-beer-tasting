@@ -71,12 +71,10 @@ export default function SessionPlayPage() {
       });
   }, [code, router]);
 
-  const ratedSet = useMemo(() => new Set(ratings.map((r) => r.beer_number)), [ratings]);
-  const unratedBeers = useMemo(
-    () => Array.from({ length: beerCount }, (_, i) => i + 1).filter((n) => !ratedSet.has(n)),
-    [beerCount, ratedSet]
+  const allBeerNumbers = useMemo(
+    () => Array.from({ length: beerCount }, (_, i) => i + 1),
+    [beerCount]
   );
-  const allRated = beerCount > 0 && unratedBeers.length === 0;
 
   const existingRating = selectedBeerNumber != null
     ? ratings.find((r) => r.beer_number === selectedBeerNumber) ?? null
@@ -132,33 +130,33 @@ export default function SessionPlayPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex items-center justify-center">
-        <p className="text-[var(--amber-muted)]">Loading…</p>
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
+        <p className="text-[var(--text-muted)]">Loading…</p>
       </div>
     );
   }
 
   if (!sessionId || beerCount === 0) {
     return (
-      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex items-center justify-center">
-        <p className="text-amber-400">Session not found.</p>
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
+        <p className="text-amber-600">Session not found.</p>
       </div>
     );
   }
 
   if (phase === "rating" && selectedBeerNumber != null) {
     return (
-      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-6">
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-6">
         <div className="w-full max-w-[480px] mx-auto">
           <div className="flex items-center justify-between mb-6">
             <button
               type="button"
               onClick={handleBackToPicker}
-              className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm"
+              className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm"
             >
               ← Back to picker
             </button>
-            <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm">
+            <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm">
               Home
             </Link>
           </div>
@@ -178,54 +176,43 @@ export default function SessionPlayPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-12">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
       <div className="w-full max-w-[480px] mx-auto space-y-6">
-        <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm inline-block mb-4">
+        <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm inline-block mb-4">
           Home
         </Link>
-
-        {allRated ? (
-          <>
-            <h1 className="text-2xl font-bold text-[var(--amber-light)]">You&apos;ve rated all beers! 🎉</h1>
-            <p className="text-[var(--amber-muted)]">Head to the done page to see your summary.</p>
-            <Link
-              href={`/session/${code}/done`}
-              className="block w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] text-[var(--amber-darker)] font-bold py-3.5 text-center transition-colors"
-            >
-              View my summary →
-            </Link>
-          </>
-        ) : (
-          <>
-            <h1 className="text-2xl font-bold text-[var(--amber-light)]">Which beer are you tasting?</h1>
-            <select
-              value={pickerSelection === "" ? "" : pickerSelection}
-              onChange={(e) => {
-                const v = e.target.value;
-                setPickerSelection(v === "" ? "" : parseInt(v, 10));
-              }}
-              className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
-            >
-              <option value="">Select a beer number</option>
-              {unratedBeers.map((n) => (
-                <option key={n} value={n}>Beer #{n}</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={handleStartRating}
-              disabled={pickerSelection === ""}
-              className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] disabled:opacity-50 text-[var(--amber-darker)] font-bold py-3.5 transition-colors"
-            >
-              Rate This Beer →
-            </button>
-            {ratings.length > 0 && (
-              <p className="text-[var(--amber-muted)] text-sm text-center">
-                You&apos;ve rated {ratings.length} of {beerCount} beers.
-              </p>
-            )}
-          </>
+        <h1 className="text-2xl font-bold text-[var(--text-heading)]">Which beer are you tasting?</h1>
+        <select
+          value={pickerSelection === "" ? "" : pickerSelection}
+          onChange={(e) => {
+            const v = e.target.value;
+            setPickerSelection(v === "" ? "" : parseInt(v, 10));
+          }}
+          className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+        >
+          <option value="">Select a beer number</option>
+          {allBeerNumbers.map((n) => (
+            <option key={n} value={n}>Beer #{n}</option>
+          ))}
+        </select>
+        <button
+          type="button"
+          onClick={handleStartRating}
+          disabled={pickerSelection === ""}
+          className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] disabled:opacity-50 text-[var(--button-text)] font-bold py-3.5 transition-colors"
+        >
+          Rate This Beer →
+        </button>
+        {ratings.length > 0 && (
+          <p className="text-[var(--text-muted)] text-sm text-center">
+            You&apos;ve submitted {ratings.length} rating{ratings.length !== 1 ? "s" : ""}. You can rate any beer again to update.
+          </p>
         )}
+        <p className="text-center">
+          <Link href={`/session/${code}/done`} className="text-[var(--amber-gold)] hover:underline text-sm">
+            View my summary →
+          </Link>
+        </p>
       </div>
     </div>
   );
@@ -277,10 +264,10 @@ function BeerRatingForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <h1 className="text-3xl font-bold text-[var(--amber-light)]">Beer #{beerNumber}</h1>
+      <h1 className="text-3xl font-bold text-[var(--text-heading)]">Beer #{beerNumber}</h1>
 
       <div>
-        <p className="text-[var(--amber-muted)] text-sm font-medium mb-2">Crushability 🍺</p>
+        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Crushability 🍺</p>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
             <button
@@ -289,8 +276,8 @@ function BeerRatingForm({
               onClick={() => setCrushability(n)}
               className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
                 crushability === n
-                  ? "bg-[var(--amber-gold)] text-[var(--amber-darker)]"
-                  : "bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] hover:border-[var(--amber-gold)]"
+                  ? "bg-[var(--amber-gold)] text-[var(--button-text)]"
+                  : "bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] hover:border-[var(--amber-gold)]"
               }`}
             >
               {n}
@@ -300,7 +287,7 @@ function BeerRatingForm({
       </div>
 
       <div>
-        <p className="text-[var(--amber-muted)] text-sm font-medium mb-2">Taste 👅</p>
+        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Taste 👅</p>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
             <button
@@ -309,8 +296,8 @@ function BeerRatingForm({
               onClick={() => setTaste(n)}
               className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
                 taste === n
-                  ? "bg-[var(--amber-gold)] text-[var(--amber-darker)]"
-                  : "bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] hover:border-[var(--amber-gold)]"
+                  ? "bg-[var(--amber-gold)] text-[var(--button-text)]"
+                  : "bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] hover:border-[var(--amber-gold)]"
               }`}
             >
               {n}
@@ -320,12 +307,12 @@ function BeerRatingForm({
       </div>
 
       <div>
-        <label className="block text-[var(--amber-muted)] text-sm font-medium mb-1">Your guess</label>
+        <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">Your guess</label>
         {hasReveals ? (
           <select
             value={guess}
             onChange={(e) => setGuess(e.target.value)}
-            className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+            className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
           >
             <option value="">-- Take a guess --</option>
             {guessOptions.map((name) => (
@@ -340,24 +327,24 @@ function BeerRatingForm({
             value={guess}
             onChange={(e) => setGuess(e.target.value)}
             placeholder="e.g. IPA from Local Brewery"
-            className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+            className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
           />
         )}
       </div>
 
       <div>
-        <label className="block text-[var(--amber-muted)] text-sm font-medium mb-1">Notes</label>
+        <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">Notes</label>
         <textarea
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any tasting notes..."
           rows={3}
-          className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] resize-none"
+          className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] resize-none"
         />
       </div>
 
       {inlineError && (
-        <p className="text-amber-400 text-sm" role="alert">
+        <p className="text-amber-600 text-sm" role="alert">
           {inlineError}
         </p>
       )}
@@ -365,7 +352,7 @@ function BeerRatingForm({
       <button
         type="submit"
         disabled={saving}
-        className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] disabled:opacity-50 text-[var(--amber-darker)] font-bold py-3.5 transition-colors"
+        className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] disabled:opacity-50 text-[var(--button-text)] font-bold py-3.5 transition-colors"
       >
         {saving ? "Saving…" : "Save & back to picker"}
       </button>

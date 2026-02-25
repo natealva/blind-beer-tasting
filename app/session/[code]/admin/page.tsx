@@ -11,24 +11,24 @@ export default async function SessionAdminPage({
   const session = await getSessionByCode(code);
   if (!session) {
     return (
-      <div className="min-h-screen bg-amber-950/30 text-amber-100 flex items-center justify-center">
-        <p className="text-red-400">Session not found.</p>
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
+        <p className="text-red-600">Session not found.</p>
       </div>
     );
   }
   const isAdmin = await verifySessionAdmin(code);
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-amber-950/30 text-amber-100">
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)]">
         <div className="max-w-md mx-auto px-6 py-12">
-          <h1 className="text-xl font-bold text-amber-200 mb-4">Admin: {session.name}</h1>
+          <h1 className="text-xl font-bold text-[var(--text-heading)] mb-4">Admin: {session.name}</h1>
           <AdminLoginForm code={code} />
         </div>
       </div>
     );
   }
   return (
-    <div className="min-h-screen bg-amber-950/30 text-amber-100">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)]">
       <SessionAdminClient
         code={code}
         sessionId={session.id}

@@ -82,18 +82,18 @@ export default function SessionJoinPage() {
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex items-center justify-center">
-        <p className="text-[var(--amber-muted)]">Loading…</p>
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
+        <p className="text-[var(--text-muted)]">Loading…</p>
       </div>
     );
   }
 
   if (error && !sessionName) {
     return (
-      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-12">
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
         <div className="w-full max-w-[480px] mx-auto">
-          <p className="text-amber-400 mb-4" role="alert">{error}</p>
-          <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] underline">
+          <p className="text-amber-600 mb-4" role="alert">{error}</p>
+          <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] underline">
             ← Back to home
           </Link>
         </div>
@@ -102,29 +102,29 @@ export default function SessionJoinPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-12">
+    <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
       <div className="w-full max-w-[480px] mx-auto">
-        <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm mb-6 inline-block">
+        <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm mb-6 inline-block">
           ← Back
         </Link>
-        <h1 className="text-2xl font-bold text-[var(--amber-light)] mb-1">{sessionName}</h1>
-        <h2 className="text-xl text-[var(--amber-muted)] mb-6">Join the Tasting</h2>
+        <h1 className="text-2xl font-bold text-[var(--text-heading)] mb-1">{sessionName}</h1>
+        <h2 className="text-xl text-[var(--text-muted)] mb-6">Join the Tasting</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[var(--amber-muted)] text-sm font-medium mb-1">Your name</label>
+            <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">Your name</label>
             <input
               type="text"
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="e.g. Alex"
-              className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+              className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
             />
           </div>
-          {error && <p className="text-amber-400 text-sm" role="alert">{error}</p>}
+          {error && <p className="text-amber-600 text-sm" role="alert">{error}</p>}
           <button
             type="submit"
             disabled={loading}
-            className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] disabled:opacity-50 text-[var(--amber-darker)] font-bold py-3 transition-colors"
+            className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] disabled:opacity-50 text-[var(--button-text)] font-bold py-3 transition-colors"
           >
             {loading ? "Joining…" : "Join the Tasting"}
           </button>
