@@ -6,10 +6,12 @@ import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
 import type { Rating } from "@/types/database";
 
-function getPlayerIdFromCookie(code: string): string | null {
-  if (typeof document === "undefined") return null;
-  const match = document.cookie.match(new RegExp(`blind_beer_player_${code}=([^;]+)`));
-  return match ? match[1] : null;
+function getPlayerIdFromStorage(code: string): string | null {
+  if (typeof window === "undefined") return null;
+  const storedCode = sessionStorage.getItem("player_session_code");
+  const playerId = sessionStorage.getItem("player_id");
+  if (storedCode !== code || !playerId) return null;
+  return playerId;
 }
 
 export default function SessionPlayPage() {
@@ -26,9 +28,9 @@ export default function SessionPlayPage() {
   const [saving, setSaving] = useState<number | null>(null);
 
   useEffect(() => {
-    const pid = getPlayerIdFromCookie(code);
+    const pid = getPlayerIdFromStorage(code);
     if (!pid) {
-      router.replace(`/session/${code}/join`);
+      router.replace(`/session/${code}`);
       return;
     }
     setPlayerId(pid);

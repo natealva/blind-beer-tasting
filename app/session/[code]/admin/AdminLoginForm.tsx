@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 
 export default function AdminLoginForm({ code }: { code: string }) {
@@ -8,6 +8,23 @@ export default function AdminLoginForm({ code }: { code: string }) {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const stored = typeof window !== "undefined" ? sessionStorage.getItem(`blind_beer_admin_${code}`) : null;
+    if (!stored) return;
+    fetch(`/api/session/${code}/admin-auth`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: stored }),
+    })
+      .then((res) => {
+        if (res.ok) {
+          sessionStorage.removeItem(`blind_beer_admin_${code}`);
+          router.refresh();
+        }
+      })
+      .catch(() => {});
+  }, [code, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

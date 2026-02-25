@@ -13,6 +13,7 @@ export default function CreatePage() {
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [createdCode, setCreatedCode] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -34,17 +35,11 @@ export default function CreatePage() {
         .single();
       if (!insertError) {
         const pwd = adminPassword || "admin";
-        const authRes = await fetch(`/api/session/${data.code}/admin-auth`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ password: pwd }),
-        });
-        if (!authRes.ok) {
-          setError("Session created but could not sign you in. Go to the session and enter the password.");
-          setLoading(false);
-          return;
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem(`blind_beer_admin_${data.code}`, pwd);
         }
-        router.push(`/session/${data.code}/admin`);
+        setCreatedCode(data.code);
+        setLoading(false);
         return;
       }
       if (insertError.code === "23505") {
@@ -59,54 +54,78 @@ export default function CreatePage() {
     setLoading(false);
   }
 
+  function goToAdmin() {
+    if (createdCode) router.push(`/session/${createdCode}/admin`);
+  }
+
   return (
-    <div className="min-h-screen bg-amber-950/30 text-amber-100">
-      <div className="max-w-md mx-auto px-6 py-12">
-        <Link href="/" className="text-amber-400 hover:text-amber-300 text-sm mb-6 inline-block">
+    <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-12">
+      <div className="w-full max-w-[480px] mx-auto">
+        <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm mb-6 inline-block">
           ← Back
         </Link>
-        <h1 className="text-2xl font-bold text-amber-200 mb-6">Create a tasting session</h1>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-amber-200/90 text-sm font-medium mb-1">Session name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. Friday Night Tasting"
-              className="w-full rounded-lg bg-amber-900/40 border border-amber-700/50 text-amber-100 px-3 py-2 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
+        {!createdCode ? (
+          <>
+            <h1 className="text-2xl font-bold text-[var(--amber-light)] mb-6">Create a tasting session</h1>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <label className="block text-[var(--amber-muted)] text-sm font-medium mb-1">Session name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="e.g. Nate's Beer Night"
+                  className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                />
+              </div>
+              <div>
+                <label className="block text-[var(--amber-muted)] text-sm font-medium mb-1">Number of beers</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={beerCount}
+                  onChange={(e) => setBeerCount(parseInt(e.target.value, 10) || 13)}
+                  className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                />
+              </div>
+              <div>
+                <label className="block text-[var(--amber-muted)] text-sm font-medium mb-1">Admin password</label>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  placeholder="You'll use this to access the admin dashboard"
+                  className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                />
+              </div>
+              {error && <p className="text-amber-400 text-sm">{error}</p>}
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] disabled:opacity-50 text-[var(--amber-darker)] font-bold py-3 transition-colors"
+              >
+                {loading ? "Creating…" : "Create session"}
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="space-y-6">
+            <p className="text-[var(--amber-light)] text-lg">Session created. Share this code with players:</p>
+            <div className="rounded-xl bg-[var(--amber-darker)] border-2 border-[var(--amber-gold)] p-6 text-center">
+              <p className="text-3xl font-bold tracking-[0.3em] text-[var(--amber-warm)] uppercase">
+                {createdCode}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={goToAdmin}
+              className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] text-[var(--amber-darker)] font-bold py-3 transition-colors"
+            >
+              Go to admin dashboard →
+            </button>
           </div>
-          <div>
-            <label className="block text-amber-200/90 text-sm font-medium mb-1">Number of beers</label>
-            <input
-              type="number"
-              min={1}
-              max={99}
-              value={beerCount}
-              onChange={(e) => setBeerCount(parseInt(e.target.value, 10) || 13)}
-              className="w-full rounded-lg bg-amber-900/40 border border-amber-700/50 text-amber-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          <div>
-            <label className="block text-amber-200/90 text-sm font-medium mb-1">Admin password</label>
-            <input
-              type="password"
-              value={adminPassword}
-              onChange={(e) => setAdminPassword(e.target.value)}
-              placeholder="Required to manage session & reveals"
-              className="w-full rounded-lg bg-amber-900/40 border border-amber-700/50 text-amber-100 px-3 py-2 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-          {error && <p className="text-red-400 text-sm">{error}</p>}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-amber-600 hover:bg-amber-500 disabled:opacity-50 text-amber-950 font-semibold py-3 transition-colors"
-          >
-            {loading ? "Creating…" : "Create session"}
-          </button>
-        </form>
+        )}
       </div>
     </div>
   );
