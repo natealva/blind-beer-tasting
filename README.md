@@ -1,6 +1,18 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Blind Beer Tasting
+
+Create or join blind tasting sessions. Admins set up sessions and map beer numbers to real names; players join with a code and rate each beer (crushability, taste, guess, notes). Admins can view results and reveals.
+
+### Supabase setup
+
+1. Create a project at [Supabase](https://supabase.com).
+2. In the SQL Editor, run the contents of `supabase-schema.sql` to create tables and RLS policies.
+3. Copy `.env.example` to `.env.local` and set:
+   - `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` from your project Settings → API.
+   - Optionally `BLIND_BEER_ADMIN_SECRET` (e.g. `openssl rand -hex 32`) to sign admin cookies.
+
+### Getting Started
 
 First, run the development server:
 
