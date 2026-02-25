@@ -28,6 +28,7 @@ export default function SessionPlayPage() {
   const [phase, setPhase] = useState<"picker" | "rating">("picker");
   const [selectedBeerNumber, setSelectedBeerNumber] = useState<number | null>(null);
   const [pickerSelection, setPickerSelection] = useState<number | "">("");
+  const [completionDismissed, setCompletionDismissed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
 
@@ -76,6 +77,9 @@ export default function SessionPlayPage() {
     [beerCount]
   );
 
+  const allComplete = beerCount > 0 && ratings.length >= beerCount;
+  const showCompletionScreen = phase === "picker" && allComplete && !completionDismissed;
+
   const existingRating = selectedBeerNumber != null
     ? ratings.find((r) => r.beer_number === selectedBeerNumber) ?? null
     : null;
@@ -83,6 +87,7 @@ export default function SessionPlayPage() {
   function handleStartRating() {
     const n = pickerSelection === "" ? null : pickerSelection;
     if (typeof n === "number" && n >= 1 && n <= beerCount) {
+      setCompletionDismissed(false);
       setSelectedBeerNumber(n);
       setPickerSelection("");
       setPhase("rating");
@@ -120,6 +125,7 @@ export default function SessionPlayPage() {
     setSaving(false);
     setSelectedBeerNumber(null);
     setPhase("picker");
+    if ((updated?.length ?? 0) >= beerCount) setCompletionDismissed(false);
   }
 
   function handleBackToPicker() {
@@ -170,6 +176,36 @@ export default function SessionPlayPage() {
             inlineError={inlineError}
             setInlineError={setInlineError}
           />
+        </div>
+      </div>
+    );
+  }
+
+  if (showCompletionScreen) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
+        <div className="w-full max-w-[480px] mx-auto space-y-6 text-center">
+          <h1 className="text-3xl font-bold text-[var(--text-heading)]">
+            🎉 You&apos;ve tasted all {beerCount} beers!
+          </h1>
+          <p className="text-[var(--text-muted)]">
+            Nice work. You can keep rating to update scores or head to your summary.
+          </p>
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => setCompletionDismissed(true)}
+              className="w-full rounded-xl bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] font-bold py-3.5 transition-colors hover:bg-amber-50"
+            >
+              Keep Rating →
+            </button>
+            <Link
+              href={`/session/${code}/done`}
+              className="block w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 text-center transition-colors"
+            >
+              View My Summary →
+            </Link>
+          </div>
         </div>
       </div>
     );
@@ -241,7 +277,13 @@ function BeerRatingForm({
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   const hasReveals = beerReveals.length > 0;
-  const guessOptions = useMemo(() => Array.from(new Set(beerReveals.map((r) => r.beer_name).filter(Boolean))), [beerReveals]);
+  const guessOptions = useMemo(
+    () =>
+      Array.from(new Set(beerReveals.map((r) => r.beer_name).filter(Boolean))).sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" })
+      ),
+    [beerReveals]
+  );
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
