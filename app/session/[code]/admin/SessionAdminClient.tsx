@@ -32,6 +32,9 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [resultsPlayers, setResultsPlayers] = useState<Player[]>([]);
   const [resultsRatings, setResultsRatings] = useState<Rating[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
+  const [playersTabPlayers, setPlayersTabPlayers] = useState<Player[]>([]);
+  const [playersTabRatings, setPlayersTabRatings] = useState<Rating[]>([]);
+  const [playersTabLoading, setPlayersTabLoading] = useState(false);
   const [newBeerNumber, setNewBeerNumber] = useState(1);
   const [newBeerName, setNewBeerName] = useState("");
   const [newBrewery, setNewBrewery] = useState("");
@@ -70,6 +73,22 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   useEffect(() => {
     if (tab === "results") fetchResultsData();
   }, [tab, fetchResultsData]);
+
+  const fetchPlayersTabData = useCallback(async () => {
+    setPlayersTabLoading(true);
+    const supabase = createSupabaseClient();
+    const [playRes, ratRes] = await Promise.all([
+      supabase.from("players").select("*").eq("session_id", sessionId).order("created_at", { ascending: true }),
+      supabase.from("ratings").select("*").eq("session_id", sessionId),
+    ]);
+    setPlayersTabPlayers(playRes.data ?? []);
+    setPlayersTabRatings(ratRes.data ?? []);
+    setPlayersTabLoading(false);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (tab === "players") fetchPlayersTabData();
+  }, [tab, fetchPlayersTabData]);
 
   async function addReveal(e: React.FormEvent) {
     e.preventDefault();
@@ -302,18 +321,47 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       )}
 
       {tab === "players" && (
-        <ul className="space-y-2">
-          {players.length === 0 ? (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="text-[var(--text-muted)] text-sm">Live data — fetched when you open this tab</span>
+            <button
+              type="button"
+              onClick={() => fetchPlayersTabData()}
+              disabled={playersTabLoading}
+              className="rounded-lg bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] disabled:opacity-50 text-[var(--button-text)] font-medium px-3 py-1.5 text-sm"
+            >
+              {playersTabLoading ? "Refreshing…" : "Refresh"}
+            </button>
+          </div>
+          {playersTabLoading && playersTabPlayers.length === 0 ? (
+            <p className="text-[var(--text-muted)]">Loading players…</p>
+          ) : playersTabPlayers.length === 0 ? (
             <p className="text-[var(--text-muted)]">No players yet. Share the code: <span className="font-mono font-semibold">{code}</span></p>
           ) : (
-            players.map((p) => (
-              <li key={p.id} className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-amber)] px-3 py-2 flex justify-between items-center">
-                <span className="text-[var(--text-heading)] font-medium">{p.name}</span>
-                <span className="text-[var(--text-muted)] text-sm">{p.order_direction === "ascending" ? "1 → last" : "Last → 1"}</span>
-              </li>
-            ))
+            <ul className="space-y-3">
+              {playersTabPlayers.map((p) => {
+                const ratingCount = playersTabRatings.filter((r) => r.player_id === p.id).length;
+                const pct = beerCount > 0 ? (100 * ratingCount) / beerCount : 0;
+                const joined = p.created_at ? new Date(p.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "—";
+                return (
+                  <li key={p.id} className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-amber)] px-4 py-3">
+                    <div className="flex justify-between items-baseline mb-1">
+                      <span className="text-[var(--text-heading)] font-medium">{p.name}</span>
+                      <span className="text-[var(--amber-gold)] font-semibold text-sm">{ratingCount}/{beerCount}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-[var(--progress-track)] overflow-hidden">
+                      <div
+                        className="h-full bg-[var(--amber-gold)] rounded-full transition-all"
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-[var(--text-muted)] text-xs mt-1">Joined {joined}</p>
+                  </li>
+                );
+              })}
+            </ul>
           )}
-        </ul>
+        </div>
       )}
 
       {tab === "results" && (
@@ -395,32 +443,40 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               {resultsSection === "chart" && (
                 <section>
                   <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Beer score comparison</h2>
-                  <p className="text-[var(--text-muted)] text-sm mb-2">Horizontal bars: first segment = taste (amber), second = crushability (gold). Scale 0–10.</p>
-                  <p className="text-[var(--text-muted)] text-xs mb-4">Legend: T = Taste, C = Crushability</p>
-                  <div className="space-y-3">
+                  <p className="text-[var(--text-muted)] text-sm mb-4">Vertical bars: amber = avg taste, gold = avg crushability (0–10). Sorted by beer number.</p>
+                  <div className="flex flex-wrap gap-6 justify-start">
                     {resultsByBeer.map((row) => {
-                      const tastePct = Math.min(100, (row.avgTaste / 10) * 50);
-                      const crushPct = Math.min(100, (row.avgCrush / 10) * 50);
+                      const tastePct = row.ratings.length ? (row.avgTaste / 10) * 100 : 0;
+                      const crushPct = row.ratings.length ? (row.avgCrush / 10) * 100 : 0;
+                      const label = row.name ? `#${row.beerNumber} ${row.name}` : `Beer #${row.beerNumber}`;
                       return (
-                        <div key={row.beerNumber} className="flex items-center gap-3">
-                          <div className="w-24 shrink-0 text-sm font-medium text-[var(--text-heading)]">
-                            #{row.beerNumber}{row.name ? ` ${row.name}` : ""}
+                        <div key={row.beerNumber} className="flex flex-col items-center gap-1 shrink-0 w-16">
+                          <p className="text-xs font-medium text-[var(--text-heading)] text-center w-full truncate" title={label}>
+                            {label}
+                          </p>
+                          <div className="flex gap-1.5 items-end h-28 w-full justify-center">
+                            <div className="flex flex-col items-center flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-amber-600">{row.ratings.length ? row.avgTaste.toFixed(1) : "—"}</span>
+                              <div className="flex-1 w-full min-h-0 flex flex-col justify-end">
+                                <div
+                                  className="w-full rounded-t bg-amber-500 min-h-[3px] transition-all"
+                                  style={{ height: `${Math.max(3, tastePct)}%` }}
+                                  title={`Taste: ${row.avgTaste.toFixed(1)}`}
+                                />
+                              </div>
+                            </div>
+                            <div className="flex flex-col items-center flex-1 min-w-0">
+                              <span className="text-xs font-semibold text-[var(--amber-gold)]">{row.ratings.length ? row.avgCrush.toFixed(1) : "—"}</span>
+                              <div className="flex-1 w-full min-h-0 flex flex-col justify-end">
+                                <div
+                                  className="w-full rounded-t bg-[var(--amber-gold)] min-h-[3px] transition-all"
+                                  style={{ height: `${Math.max(3, crushPct)}%` }}
+                                  title={`Crush: ${row.avgCrush.toFixed(1)}`}
+                                />
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex-1 h-8 rounded overflow-hidden bg-[var(--progress-track)] flex">
-                            <div
-                              className="h-full bg-amber-500 transition-all"
-                              style={{ width: `${tastePct}%` }}
-                              title={`Taste: ${row.avgTaste.toFixed(1)}`}
-                            />
-                            <div
-                              className="h-full bg-[var(--amber-gold)] transition-all"
-                              style={{ width: `${crushPct}%` }}
-                              title={`Crush: ${row.avgCrush.toFixed(1)}`}
-                            />
-                          </div>
-                          <span className="w-16 text-right text-sm text-[var(--text-muted)]">
-                            T {row.ratings.length ? row.avgTaste.toFixed(1) : "—"} · C {row.ratings.length ? row.avgCrush.toFixed(1) : "—"}
-                          </span>
+                          <p className="text-[10px] text-[var(--text-muted)]">T · C</p>
                         </div>
                       );
                     })}

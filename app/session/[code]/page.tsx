@@ -52,11 +52,24 @@ export default function SessionJoinPage() {
       setLoading(false);
       return;
     }
-    const { count } = await supabase
+    const { data: existingPlayers } = await supabase
       .from("players")
-      .select("*", { count: "exact", head: true })
+      .select("id, name")
       .eq("session_id", session.id);
-    const orderDirection = count != null && count % 2 === 0 ? "ascending" : "descending";
+    const nameLower = playerName.trim().toLowerCase();
+    const existing = existingPlayers?.find((p) => p.name.trim().toLowerCase() === nameLower);
+    if (existing) {
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("player_id", existing.id);
+        sessionStorage.setItem("player_name", existing.name.trim());
+        sessionStorage.setItem("player_session_code", code);
+      }
+      router.push(`/session/${code}/play`);
+      setLoading(false);
+      return;
+    }
+    const count = existingPlayers?.length ?? 0;
+    const orderDirection = count % 2 === 0 ? "ascending" : "descending";
     const { data: player, error: insertError } = await supabase
       .from("players")
       .insert({

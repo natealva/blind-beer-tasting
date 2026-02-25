@@ -10,7 +10,10 @@ export default function AdminLoginForm({ code }: { code: string }) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const stored = typeof window !== "undefined" ? sessionStorage.getItem(`blind_beer_admin_${code}`) : null;
+    const stored =
+      typeof window !== "undefined"
+        ? sessionStorage.getItem(`blind_beer_admin_${code}`) ?? sessionStorage.getItem("admin_password")
+        : null;
     if (!stored) return;
     fetch(`/api/session/${code}/admin-auth`, {
       method: "POST",
@@ -21,6 +24,8 @@ export default function AdminLoginForm({ code }: { code: string }) {
         if (res.ok) {
           sessionStorage.removeItem(`blind_beer_admin_${code}`);
           router.refresh();
+        } else {
+          sessionStorage.removeItem("admin_password");
         }
       })
       .catch(() => {});
