@@ -6,8 +6,6 @@ import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
 import type { Rating, BeerReveal } from "@/types/database";
 
-const START_BEER_KEY = "player_start_beer";
-
 function getPlayerFromStorage(code: string): { playerId: string; playerName: string } | null {
   if (typeof window === "undefined") return null;
   const storedCode = sessionStorage.getItem("player_session_code");
@@ -17,23 +15,6 @@ function getPlayerFromStorage(code: string): { playerId: string; playerName: str
   return { playerId, playerName };
 }
 
-function getStoredStartBeer(code: string): number | null {
-  if (typeof window === "undefined") return null;
-  const raw = sessionStorage.getItem(`${START_BEER_KEY}_${code}`);
-  if (raw == null) return null;
-  const n = parseInt(raw, 10);
-  return Number.isFinite(n) ? n : null;
-}
-
-function buildSequenceFromStart(start: number, beerCount: number): number[] {
-  const seq: number[] = [];
-  for (let i = 0; i < beerCount; i++) {
-    const n = ((start - 1 + i) % beerCount) + 1;
-    seq.push(n);
-  }
-  return seq;
-}
-
 export default function SessionPlayPage() {
   const params = useParams();
   const router = useRouter();
@@ -41,14 +22,12 @@ export default function SessionPlayPage() {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [beerCount, setBeerCount] = useState(0);
-  const [startBeer, setStartBeer] = useState<number | null>(null);
   const [beerReveals, setBeerReveals] = useState<BeerReveal[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
-  const [beerSequence, setBeerSequence] = useState<number[]>([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [skippedOrder, setSkippedOrder] = useState<number[]>([]);
-  const [isRound2, setIsRound2] = useState(false);
+  const [phase, setPhase] = useState<"picker" | "rating">("picker");
+  const [selectedBeerNumber, setSelectedBeerNumber] = useState<number | null>(null);
+  const [pickerSelection, setPickerSelection] = useState<number | "">("");
   const [saving, setSaving] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
 
@@ -74,12 +53,6 @@ export default function SessionPlayPage() {
         setSessionId(session.id);
         setBeerCount(session.beer_count);
 
-        const storedStart = getStoredStartBeer(code);
-        if (storedStart != null && storedStart >= 1 && storedStart <= session.beer_count) {
-          setStartBeer(storedStart);
-          setBeerSequence(buildSequenceFromStart(storedStart, session.beer_count));
-        }
-
         supabase
           .from("beer_reveals")
           .select("*")
@@ -98,34 +71,24 @@ export default function SessionPlayPage() {
       });
   }, [code, router]);
 
-  // Set currentIndex to first unrated beer in sequence (after data loaded)
-  useEffect(() => {
-    if (beerSequence.length === 0) return;
-    const ratedSet = new Set(ratings.map((r) => r.beer_number));
-    const firstUnrated = beerSequence.findIndex((n) => !ratedSet.has(n));
-    setCurrentIndex(firstUnrated >= 0 ? firstUnrated : beerSequence.length - 1);
-  }, [beerSequence, ratings]);
+  const ratedSet = useMemo(() => new Set(ratings.map((r) => r.beer_number)), [ratings]);
+  const unratedBeers = useMemo(
+    () => Array.from({ length: beerCount }, (_, i) => i + 1).filter((n) => !ratedSet.has(n)),
+    [beerCount, ratedSet]
+  );
+  const allRated = beerCount > 0 && unratedBeers.length === 0;
 
-  const currentBeerNumber = beerSequence[currentIndex] ?? null;
-  const existingRating = currentBeerNumber
-    ? ratings.find((r) => r.beer_number === currentBeerNumber) ?? null
+  const existingRating = selectedBeerNumber != null
+    ? ratings.find((r) => r.beer_number === selectedBeerNumber) ?? null
     : null;
 
-  const allRated = beerSequence.length > 0 && beerSequence.every((n) => ratings.some((r) => r.beer_number === n));
-
-  useEffect(() => {
-    if (!loading && sessionId && allRated && skippedOrder.length === 0) {
-      router.replace(`/session/${code}/done`);
+  function handleStartRating() {
+    const n = pickerSelection === "" ? null : pickerSelection;
+    if (typeof n === "number" && n >= 1 && n <= beerCount) {
+      setSelectedBeerNumber(n);
+      setPickerSelection("");
+      setPhase("rating");
     }
-  }, [loading, sessionId, allRated, skippedOrder.length, code, router]);
-
-  function handleStartRating(selectedStart: number) {
-    if (selectedStart < 1 || selectedStart > beerCount) return;
-    if (typeof window !== "undefined") {
-      sessionStorage.setItem(`${START_BEER_KEY}_${code}`, String(selectedStart));
-    }
-    setStartBeer(selectedStart);
-    setBeerSequence(buildSequenceFromStart(selectedStart, beerCount));
   }
 
   async function handleSave(payload: {
@@ -134,7 +97,7 @@ export default function SessionPlayPage() {
     guess: string | null;
     notes: string | null;
   }) {
-    if (!sessionId || !playerId || currentBeerNumber == null) return;
+    if (!sessionId || !playerId || selectedBeerNumber == null) return;
     setInlineError(null);
     setSaving(true);
     const supabase = createSupabaseClient();
@@ -142,7 +105,7 @@ export default function SessionPlayPage() {
       {
         session_id: sessionId,
         player_id: playerId,
-        beer_number: currentBeerNumber,
+        beer_number: selectedBeerNumber,
         crushability: payload.crushability,
         taste: payload.taste,
         guess: payload.guess || null,
@@ -157,40 +120,15 @@ export default function SessionPlayPage() {
       .eq("player_id", playerId);
     setRatings(updated ?? []);
     setSaving(false);
-    advanceToNext();
+    setSelectedBeerNumber(null);
+    setPhase("picker");
   }
 
-  function advanceToNext(updatedSkipped?: number[]) {
-    const skipped = updatedSkipped ?? skippedOrder;
-    if (currentIndex >= beerSequence.length - 1) {
-      if (!isRound2 && skipped.length > 0) {
-        setBeerSequence([...skipped]);
-        setSkippedOrder([]);
-        setIsRound2(true);
-        setCurrentIndex(0);
-      } else {
-        router.push(`/session/${code}/done`);
-      }
-    } else {
-      setCurrentIndex((i) => i + 1);
-    }
+  function handleBackToPicker() {
+    setSelectedBeerNumber(null);
+    setPhase("picker");
+    setPickerSelection("");
   }
-
-  function handleSkip() {
-    if (currentBeerNumber == null) return;
-    if (isRound2) {
-      advanceToNext();
-      return;
-    }
-    const nextSkipped = skippedOrder.includes(currentBeerNumber)
-      ? skippedOrder
-      : [...skippedOrder, currentBeerNumber];
-    setSkippedOrder(nextSkipped);
-    advanceToNext(nextSkipped);
-  }
-
-  const [startScreenSelection, setStartScreenSelection] = useState<number | "">("");
-  const showStartScreen = sessionId != null && beerCount > 0 && startBeer == null && beerSequence.length === 0;
 
   if (loading) {
     return (
@@ -208,81 +146,86 @@ export default function SessionPlayPage() {
     );
   }
 
-  if (showStartScreen) {
+  if (phase === "rating" && selectedBeerNumber != null) {
     return (
-      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-12">
-        <div className="w-full max-w-[480px] mx-auto space-y-6">
-          <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm inline-block mb-4">
-            Home
-          </Link>
-          <h1 className="text-2xl font-bold text-[var(--amber-light)]">Which beer are you starting with?</h1>
-          <select
-            value={startScreenSelection === "" ? "" : startScreenSelection}
-            onChange={(e) => {
-              const v = e.target.value;
-              setStartScreenSelection(v === "" ? "" : parseInt(v, 10));
-            }}
-            className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
-          >
-            <option value="">Select a beer number</option>
-            {Array.from({ length: beerCount }, (_, i) => i + 1).map((n) => (
-              <option key={n} value={n}>Beer #{n}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            onClick={() => {
-              const n = startScreenSelection === "" ? null : startScreenSelection;
-              if (typeof n === "number" && Number.isFinite(n)) handleStartRating(n);
-            }}
-            disabled={startScreenSelection === ""}
-            className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] disabled:opacity-50 text-[var(--amber-darker)] font-bold py-3.5 transition-colors"
-          >
-            Start Rating →
-          </button>
+      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-6">
+        <div className="w-full max-w-[480px] mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <button
+              type="button"
+              onClick={handleBackToPicker}
+              className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm"
+            >
+              ← Back to picker
+            </button>
+            <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm">
+              Home
+            </Link>
+          </div>
+          <BeerRatingForm
+            key={selectedBeerNumber}
+            beerNumber={selectedBeerNumber}
+            existing={existingRating}
+            beerReveals={beerReveals}
+            onSave={handleSave}
+            saving={saving}
+            inlineError={inlineError}
+            setInlineError={setInlineError}
+          />
         </div>
-      </div>
-    );
-  }
-
-  if (beerSequence.length === 0) {
-    return (
-      <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex items-center justify-center">
-        <p className="text-[var(--amber-muted)]">Loading…</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-6">
-      <div className="w-full max-w-[480px] mx-auto">
-        <div className="flex items-center justify-between mb-4">
-          <span className="text-[var(--amber-muted)] text-sm">
-            Beer {currentIndex + 1} of {beerSequence.length}
-          </span>
-          <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm">
-            Home
-          </Link>
-        </div>
-        <div className="h-2 bg-[var(--amber-darker)] rounded-full overflow-hidden mb-6">
-          <div
-            className="h-full bg-[var(--amber-gold)] rounded-full transition-all duration-300"
-            style={{ width: `${(100 * (currentIndex + 1)) / beerSequence.length}%` }}
-          />
-        </div>
+    <div className="min-h-screen bg-[var(--amber-dark)] text-[var(--amber-light)] flex flex-col items-center px-4 py-12">
+      <div className="w-full max-w-[480px] mx-auto space-y-6">
+        <Link href="/" className="text-[var(--amber-muted)] hover:text-[var(--amber-warm)] text-sm inline-block mb-4">
+          Home
+        </Link>
 
-        <BeerRatingForm
-          key={currentBeerNumber}
-          beerNumber={currentBeerNumber!}
-          existing={existingRating}
-          beerReveals={beerReveals}
-          onSave={handleSave}
-          onSkip={handleSkip}
-          saving={saving}
-          inlineError={inlineError}
-          setInlineError={setInlineError}
-          isLast={currentIndex >= beerSequence.length - 1 && (isRound2 || skippedOrder.length === 0)}
-        />
+        {allRated ? (
+          <>
+            <h1 className="text-2xl font-bold text-[var(--amber-light)]">You&apos;ve rated all beers! 🎉</h1>
+            <p className="text-[var(--amber-muted)]">Head to the done page to see your summary.</p>
+            <Link
+              href={`/session/${code}/done`}
+              className="block w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] text-[var(--amber-darker)] font-bold py-3.5 text-center transition-colors"
+            >
+              View my summary →
+            </Link>
+          </>
+        ) : (
+          <>
+            <h1 className="text-2xl font-bold text-[var(--amber-light)]">Which beer are you tasting?</h1>
+            <select
+              value={pickerSelection === "" ? "" : pickerSelection}
+              onChange={(e) => {
+                const v = e.target.value;
+                setPickerSelection(v === "" ? "" : parseInt(v, 10));
+              }}
+              className="w-full rounded-lg bg-[var(--amber-darker)] border-2 border-[var(--amber-border)] text-[var(--amber-light)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+            >
+              <option value="">Select a beer number</option>
+              {unratedBeers.map((n) => (
+                <option key={n} value={n}>Beer #{n}</option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={handleStartRating}
+              disabled={pickerSelection === ""}
+              className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] disabled:opacity-50 text-[var(--amber-darker)] font-bold py-3.5 transition-colors"
+            >
+              Rate This Beer →
+            </button>
+            {ratings.length > 0 && (
+              <p className="text-[var(--amber-muted)] text-sm text-center">
+                You&apos;ve rated {ratings.length} of {beerCount} beers.
+              </p>
+            )}
+          </>
+        )}
       </div>
     </div>
   );
@@ -293,21 +236,17 @@ function BeerRatingForm({
   existing,
   beerReveals,
   onSave,
-  onSkip,
   saving,
   inlineError,
   setInlineError,
-  isLast,
 }: {
   beerNumber: number;
   existing: Rating | null;
   beerReveals: BeerReveal[];
   onSave: (payload: { crushability: number; taste: number; guess: string | null; notes: string | null }) => void;
-  onSkip: () => void;
   saving: boolean;
   inlineError: string | null;
   setInlineError: (s: string | null) => void;
-  isLast: boolean;
 }) {
   const [crushability, setCrushability] = useState<number | null>(existing?.crushability ?? null);
   const [taste, setTaste] = useState<number | null>(existing?.taste ?? null);
@@ -428,14 +367,7 @@ function BeerRatingForm({
         disabled={saving}
         className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-warm)] disabled:opacity-50 text-[var(--amber-darker)] font-bold py-3.5 transition-colors"
       >
-        {saving ? "Saving…" : isLast ? "Save & Finish →" : "Save & Next Beer →"}
-      </button>
-      <button
-        type="button"
-        onClick={onSkip}
-        className="w-full rounded-xl border-2 border-[var(--amber-border)] text-[var(--amber-muted)] hover:bg-[var(--amber-darker)] font-medium py-2.5 transition-colors mt-2"
-      >
-        Skip for now →
+        {saving ? "Saving…" : "Save & back to picker"}
       </button>
     </form>
   );
