@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 
 export default function Home() {
@@ -92,10 +93,13 @@ export default function Home() {
         <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[var(--text-heading)]">
           🍺 Blind Beer Tasting
         </h1>
-        <img
+        <Image
           src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
-          alt=""
-          className="w-[120px] h-auto mx-auto mb-6 rounded-lg"
+          alt="Beer cheers"
+          width={120}
+          height={120}
+          unoptimized
+          className="mx-auto mb-6 rounded-lg"
         />
         <form onSubmit={handleJoin} className="space-y-4">
           <input

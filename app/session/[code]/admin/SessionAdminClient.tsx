@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import type { BeerReveal, Player, Rating } from "@/types/database";
 
@@ -172,7 +173,6 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
 
   const CHART_HEIGHT_PX = 200;
   const BAR_WIDTH_PX = 32;
-  const BAR_GAP_PX = 8;
 
   function ResultsBarChart({
     rows,
@@ -272,10 +272,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     <div className="max-w-3xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <img
+          <Image
             src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
-            alt=""
-            className="w-[80px] h-auto rounded-lg shrink-0"
+            alt="Beer cheers"
+            width={80}
+            height={80}
+            unoptimized
+            className="rounded-lg shrink-0"
           />
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-heading)]">{sessionName}</h1>

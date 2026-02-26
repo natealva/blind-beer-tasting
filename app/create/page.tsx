@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { generateSessionCode } from "@/lib/code";
 
@@ -64,10 +65,13 @@ export default function CreatePage() {
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm mb-6 inline-block">
           ← Back
         </Link>
-        <img
+        <Image
           src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
-          alt=""
-          className="w-[120px] h-auto mx-auto mb-4 rounded-lg"
+          alt="Beer cheers"
+          width={120}
+          height={120}
+          unoptimized
+          className="mx-auto mb-4 rounded-lg"
         />
         {!createdCode ? (
           <>

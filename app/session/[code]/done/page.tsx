@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import type { Rating, BeerReveal } from "@/types/database";
 
@@ -75,10 +76,13 @@ export default function SessionDonePage() {
         <h1 className="text-3xl font-bold text-[var(--text-heading)] text-center">
           🎉 You&apos;re done, {playerName}!
         </h1>
-        <img
+        <Image
           src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
-          alt=""
-          className="w-[120px] h-auto mx-auto rounded-lg"
+          alt="Beer cheers"
+          width={120}
+          height={120}
+          unoptimized
+          className="mx-auto rounded-lg"
         />
         <div className="space-y-4">
           {sortedRatings.length === 0 ? (
