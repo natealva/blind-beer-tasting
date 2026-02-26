@@ -179,9 +179,12 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     { id: "individual", label: "Individual ratings" },
   ];
 
-  const CHART_HEIGHT_PX = 200;
-  const BAR_WIDTH_PX = 32;
-  const Y_AXIS_VALUES = [10, 8, 6, 4, 2, 0];
+  const CHART_HEIGHT = 200;
+  const BAR_WIDTH = 32;
+
+  function pxFromScore(score: number): number {
+    return Math.max(0, (score / 10) * CHART_HEIGHT);
+  }
 
   function ResultsBarChart({
     rows,
@@ -195,18 +198,18 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     const label = (row: BeerStat) =>
       row.name ? (row.name.length > 10 ? row.name.slice(0, 10) + "…" : row.name) : `Beer ${row.beerNumber}`;
     return (
-      <div className="flex items-end overflow-x-auto pb-2 -mx-1" style={{ gap: 8 }}>
-        <div style={{ position: "relative", height: CHART_HEIGHT_PX, marginRight: 8, width: 24 }}>
-          {Y_AXIS_VALUES.map((val, i) => (
+      <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }} className="-mx-1 pb-2 overflow-x-auto">
+        <div style={{ position: "relative", height: `${CHART_HEIGHT}px`, width: "24px", flexShrink: 0 }}>
+          {[10, 8, 6, 4, 2, 0].map((val, i) => (
             <span
               key={val}
               style={{
                 position: "absolute",
                 top: `${i * 40}px`,
-                right: 0,
+                right: "2px",
+                transform: "translateY(-50%)",
                 fontSize: "11px",
                 color: "#92400e",
-                transform: "translateY(-50%)",
                 lineHeight: 1,
               }}
             >
@@ -214,54 +217,61 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
             </span>
           ))}
         </div>
-        <div className="flex-1 min-w-0 overflow-x-auto">
-          <div
-            className="relative flex items-end border-l border-b border-amber-600"
-            style={{ height: CHART_HEIGHT_PX, gap: 8 }}
-          >
-            {[0, 1, 2, 3, 4, 5].map((i) => (
-              <div
-                key={i}
-                style={{
-                  position: "absolute",
-                  top: `${i * 40}px`,
-                  left: 0,
-                  right: 0,
-                  height: "1px",
-                  background: "rgba(217,119,6,0.2)",
-                }}
-              />
-            ))}
-            {rows.map((row) => {
-              const score = row.ratings.length ? getValue(row) : 0;
-              const barPct = Math.max(0, (score / 10) * 100);
-              return (
-                <div
-                  key={row.beerNumber}
-                  className="shrink-0 flex flex-col justify-end relative"
-                  style={{ width: BAR_WIDTH_PX, height: CHART_HEIGHT_PX }}
-                >
-                  <div
-                    className={`w-full rounded-t ${barColor}`}
-                    style={{ height: `${barPct}%`, minHeight: barPct > 0 ? 4 : 0 }}
-                    title={row.ratings.length ? `${score.toFixed(1)}` : "No ratings"}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div className="flex gap-2 mt-1 flex-nowrap">
-            {rows.map((row) => (
+        <div
+          style={{
+            position: "relative",
+            height: `${CHART_HEIGHT}px`,
+            display: "flex",
+            alignItems: "flex-end",
+            gap: "8px",
+            borderLeft: "1px solid #d97706",
+            borderBottom: "1px solid #d97706",
+            paddingLeft: "4px",
+            overflowX: "auto",
+            flexGrow: 1,
+          }}
+        >
+          {[0, 40, 80, 120, 160, 200].map((topPx) => (
+            <div
+              key={topPx}
+              style={{
+                position: "absolute",
+                top: `${topPx}px`,
+                left: 0,
+                right: 0,
+                height: "1px",
+                background: "rgba(217,119,6,0.15)",
+                pointerEvents: "none",
+              }}
+            />
+          ))}
+          {rows.map((row) => {
+            const score = row.ratings.length ? getValue(row) : 0;
+            const barHeightPx = pxFromScore(score);
+            return (
               <div
                 key={row.beerNumber}
-                className="shrink-0 text-[10px] text-[var(--text-muted)] text-center truncate"
-                style={{ width: BAR_WIDTH_PX }}
-                title={row.name ?? `Beer ${row.beerNumber}`}
+                style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}
               >
-                {label(row)}
+                <div
+                  className={`rounded-t ${barColor}`}
+                  style={{
+                    height: `${barHeightPx}px`,
+                    width: `${BAR_WIDTH}px`,
+                    minHeight: barHeightPx > 0 ? 2 : 0,
+                  }}
+                  title={row.ratings.length ? `${score.toFixed(1)}` : "No ratings"}
+                />
+                <div
+                  className="text-[10px] text-[var(--text-muted)] text-center truncate"
+                  style={{ width: BAR_WIDTH, marginTop: "4px" }}
+                  title={row.name ?? `Beer ${row.beerNumber}`}
+                >
+                  {label(row)}
+                </div>
               </div>
-            ))}
-          </div>
+            );
+          })}
         </div>
       </div>
     );
