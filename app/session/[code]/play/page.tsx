@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
-import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
+import { getRandomBeerGif } from "@/lib/beerGifs";
 import type { Rating, BeerReveal } from "@/types/database";
 
 function getPlayerFromStorage(code: string): { playerId: string; playerName: string } | null {
@@ -33,10 +33,7 @@ export default function SessionPlayPage() {
   const [completionDismissed, setCompletionDismissed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
-  const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
-  useEffect(() => {
-    setGifSrc(getRandomBeerGif());
-  }, []);
+  const [currentGif, setCurrentGif] = useState<string>(getRandomBeerGif());
 
   useEffect(() => {
     const player = getPlayerFromStorage(code);
@@ -131,6 +128,7 @@ export default function SessionPlayPage() {
     setSaving(false);
     setSelectedBeerNumber(null);
     setPhase("picker");
+    setCurrentGif(getRandomBeerGif());
     if ((updated?.length ?? 0) >= beerCount) setCompletionDismissed(false);
   }
 
@@ -138,6 +136,7 @@ export default function SessionPlayPage() {
     setSelectedBeerNumber(null);
     setPhase("picker");
     setPickerSelection("");
+    setCurrentGif(getRandomBeerGif());
   }
 
   if (loading) {
@@ -200,7 +199,10 @@ export default function SessionPlayPage() {
           <div className="flex flex-col gap-3">
             <button
               type="button"
-              onClick={() => setCompletionDismissed(true)}
+              onClick={() => {
+                setCurrentGif(getRandomBeerGif());
+                setCompletionDismissed(true);
+              }}
               className="w-full rounded-xl bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] font-bold py-3.5 transition-colors hover:bg-amber-50"
             >
               Keep Rating →
@@ -224,7 +226,7 @@ export default function SessionPlayPage() {
           Home
         </Link>
         <Image
-          src={gifSrc}
+          src={currentGif}
           alt="Beer cheers"
           width={120}
           height={120}
