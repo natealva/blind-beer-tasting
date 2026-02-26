@@ -124,7 +124,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     setNewBeerName("");
     setNewBrewery("");
     setNewStyle("");
-    setNewBeerNumber(reveals.length + 1);
+    setNewBeerNumber(num + 1);
     setSaving(false);
   }
 

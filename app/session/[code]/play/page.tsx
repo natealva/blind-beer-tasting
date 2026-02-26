@@ -543,15 +543,15 @@ function BeerRatingForm({
       <h1 className="text-3xl font-bold text-[var(--text-heading)]">Beer #{beerNumber}</h1>
 
       <div>
-        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Crushability 🍺</p>
+        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Taste 👅</p>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
             <button
               key={n}
               type="button"
-              onClick={() => setCrushability(n)}
+              onClick={() => setTaste(n)}
               className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
-                crushability === n
+                taste === n
                   ? "bg-[var(--amber-gold)] text-[var(--button-text)]"
                   : "bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] hover:border-[var(--amber-gold)]"
               }`}
@@ -563,15 +563,15 @@ function BeerRatingForm({
       </div>
 
       <div>
-        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Taste 👅</p>
+        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Crushability 🍺</p>
         <div className="flex flex-wrap gap-2">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
             <button
               key={n}
               type="button"
-              onClick={() => setTaste(n)}
+              onClick={() => setCrushability(n)}
               className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
-                taste === n
+                crushability === n
                   ? "bg-[var(--amber-gold)] text-[var(--button-text)]"
                   : "bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] hover:border-[var(--amber-gold)]"
               }`}
