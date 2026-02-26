@@ -16,11 +16,13 @@ function UserVsGroupChart({
   getValue,
   getGroupAvg,
   title,
+  getBeerName,
 }: {
   rows: { beerNumber: number; userScore: number }[];
   getValue: (r: { userScore: number }) => number;
   getGroupAvg: (beerNumber: number) => number;
   title: string;
+  getBeerName?: (beerNumber: number) => string | null;
 }) {
   return (
     <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-4">
@@ -36,6 +38,7 @@ function UserVsGroupChart({
               const lineBottomPx = (groupAvg / 10) * CHART_HEIGHT_PX;
               const isAboveAvg = userScore >= groupAvg;
               const barColor = isAboveAvg ? "bg-amber-500" : "bg-amber-300";
+              const beerName = getBeerName?.(row.beerNumber) ?? null;
               return (
                 <div
                   key={row.beerNumber}
@@ -61,7 +64,12 @@ function UserVsGroupChart({
                       />
                     )}
                   </div>
-                  <span className="text-[10px] text-[var(--text-muted)] mt-1">Beer #{row.beerNumber}</span>
+                  <div className="text-center text-xs mt-1 w-full">
+                    <div className="text-[var(--text-muted)]">Beer #{row.beerNumber}</div>
+                    {beerName && (
+                      <div className="text-amber-700 font-semibold truncate" title={beerName}>{beerName}</div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -294,7 +302,7 @@ export default function SessionRevealPage() {
                   <ul className="text-sm space-y-1">
                     {myOverallRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.combined.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.combined.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -314,7 +322,7 @@ export default function SessionRevealPage() {
                   <ul className="text-sm space-y-1">
                     {myCrushRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.crush.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.crush.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -330,12 +338,14 @@ export default function SessionRevealPage() {
                   getValue={(r) => r.userScore}
                   getGroupAvg={groupAvgByBeer.taste}
                   title="How your taste ratings compare"
+                  getBeerName={(n) => revealByNumber.get(n)?.beer_name ?? null}
                 />
                 <UserVsGroupChart
                   rows={chartCrushRows}
                   getValue={(r) => r.userScore}
                   getGroupAvg={groupAvgByBeer.crush}
                   title="How your crushability ratings compare"
+                  getBeerName={(n) => revealByNumber.get(n)?.beer_name ?? null}
                 />
               </div>
             </section>

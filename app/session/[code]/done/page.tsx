@@ -271,7 +271,7 @@ export default function SessionDonePage() {
                   <ul className="text-sm space-y-1">
                     {myOverallRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber} — {row.combined.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.combined.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -281,7 +281,7 @@ export default function SessionDonePage() {
                   <ul className="text-sm space-y-1">
                     {myTasteRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber} — {row.taste.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.taste.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -291,7 +291,7 @@ export default function SessionDonePage() {
                   <ul className="text-sm space-y-1">
                     {myCrushRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber} — {row.crush.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.crush.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
