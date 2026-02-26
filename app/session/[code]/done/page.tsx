@@ -11,6 +11,8 @@ import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 const CHART_HEIGHT_PX = 200;
 const BAR_WIDTH_PX = 32;
 
+const Y_AXIS_TICKS = [10, 8, 6, 4, 2, 0];
+
 function UserVsGroupChart({
   rows,
   getValue,
@@ -26,9 +28,25 @@ function UserVsGroupChart({
     <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-4">
       <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">{title}</h3>
       <p className="text-[10px] text-[var(--text-muted)] mb-2">▬ Group average</p>
-      <div className="overflow-x-auto pb-2">
-        <div className="relative flex gap-[8px] items-end px-1" style={{ height: CHART_HEIGHT_PX + 48 }}>
-          <div className="flex gap-[8px] items-end flex-nowrap relative z-10">
+      <div className="flex flex-row gap-0 overflow-x-auto pb-2">
+        <div
+          className="flex flex-col justify-between shrink-0 pr-1.5 border-r border-amber-600 text-right text-[10px] text-amber-800 font-medium"
+          style={{ height: CHART_HEIGHT_PX }}
+        >
+          {Y_AXIS_TICKS.map((t) => (
+            <span key={t}>{t}</span>
+          ))}
+        </div>
+        <div className="flex-1 min-w-0 relative" style={{ height: CHART_HEIGHT_PX + 48 }}>
+          {/* Gridlines */}
+          {[40, 80, 120, 160].map((bottom) => (
+            <div
+              key={bottom}
+              className="absolute left-0 right-0 border-t border-amber-400/20 pointer-events-none"
+              style={{ bottom: 48 + bottom }}
+            />
+          ))}
+          <div className="flex gap-[8px] items-end flex-nowrap relative z-10 px-1" style={{ height: CHART_HEIGHT_PX + 48 }}>
             {rows.map((row) => {
               const userScore = getValue(row);
               const groupAvg = getGroupAvg(row.beerNumber);
@@ -124,12 +142,6 @@ export default function SessionDonePage() {
     () => sortedRatings.filter((r) => r.crushability != null && r.taste != null),
     [sortedRatings]
   );
-  const avgCrush = withScores.length
-    ? withScores.reduce((s, r) => s + (r.crushability ?? 0), 0) / withScores.length
-    : 0;
-  const avgTaste = withScores.length
-    ? withScores.reduce((s, r) => s + (r.taste ?? 0), 0) / withScores.length
-    : 0;
 
   const myOverallRanked = useMemo(
     () =>
@@ -249,17 +261,6 @@ export default function SessionDonePage() {
             ))
           )}
         </div>
-
-        {withScores.length > 0 && (
-          <div className="rounded-xl bg-[var(--bg-card)] border-2 border-[var(--amber-gold)] px-4 py-3 text-center">
-            <p className="text-[var(--text-muted)] text-sm mb-1">Your averages</p>
-            <p className="text-[var(--text-body)]">
-              Crushability: <span className="font-bold text-[var(--amber-gold)]">{avgCrush.toFixed(1)}</span>/10
-              {" · "}
-              Taste: <span className="font-bold text-[var(--amber-gold)]">{avgTaste.toFixed(1)}</span>/10
-            </p>
-          </div>
-        )}
 
         {withScores.length > 0 && (
           <>

@@ -43,6 +43,9 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [newStyle, setNewStyle] = useState("");
   const [saving, setSaving] = useState(false);
   const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
+  const [editingRating, setEditingRating] = useState<Rating | null>(null);
+  const [editForm, setEditForm] = useState({ crushability: 0, taste: 0, guess: "", notes: "" });
+  const [savingRating, setSavingRating] = useState(false);
   useEffect(() => {
     setGifSrc(getRandomBeerGif());
   }, []);
@@ -178,6 +181,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
 
   const CHART_HEIGHT_PX = 200;
   const BAR_WIDTH_PX = 32;
+  const Y_AXIS_TICKS = [10, 8, 6, 4, 2, 0];
 
   function ResultsBarChart({
     rows,
@@ -191,14 +195,29 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     const label = (row: BeerStat) =>
       row.name ? (row.name.length > 10 ? row.name.slice(0, 10) + "…" : row.name) : `Beer ${row.beerNumber}`;
     return (
-      <div className="overflow-x-auto pb-2 -mx-1">
-        <div className="relative flex gap-[8px] items-end px-1" style={{ height: CHART_HEIGHT_PX + 48 }}>
-          {/* Reference line at y=5 (50%) */}
+      <div className="flex flex-row gap-0 overflow-x-auto pb-2 -mx-1">
+        <div
+          className="flex flex-col justify-between shrink-0 pr-1.5 border-r border-amber-600 text-right text-[10px] text-amber-800 font-medium"
+          style={{ height: CHART_HEIGHT_PX }}
+        >
+          {Y_AXIS_TICKS.map((t) => (
+            <span key={t}>{t}</span>
+          ))}
+        </div>
+        <div className="flex-1 min-w-0 relative" style={{ height: CHART_HEIGHT_PX + 48 }}>
+          {/* Reference line at y=5 */}
           <div
             className="absolute left-0 right-0 border-t border-amber-300/60 border-dashed z-0 pointer-events-none"
             style={{ bottom: 48 + (5 / 10) * CHART_HEIGHT_PX }}
           />
-          <div className="flex gap-[8px] items-end flex-nowrap relative z-10">
+          {[40, 80, 120, 160].map((bottom) => (
+            <div
+              key={bottom}
+              className="absolute left-0 right-0 border-t border-amber-400/20 pointer-events-none"
+              style={{ bottom: 48 + bottom }}
+            />
+          ))}
+          <div className="flex gap-[8px] items-end flex-nowrap relative z-10 px-1" style={{ height: CHART_HEIGHT_PX + 48 }}>
             {rows.map((row) => {
               const score = row.ratings.length ? getValue(row) : 0;
               const heightPx = (score / 10) * CHART_HEIGHT_PX;
@@ -557,23 +576,128 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                   <th className="px-3 py-2 font-medium">Taste</th>
                                   <th className="px-3 py-2 font-medium">Guess</th>
                                   <th className="px-3 py-2 font-medium">Notes</th>
+                                  <th className="px-3 py-2 w-10"></th>
                                 </tr>
                               </thead>
                               <tbody className="divide-y divide-[var(--border-subtle)]">
                                 {beerRatings.length === 0 ? (
                                   <tr>
-                                    <td colSpan={5} className="px-3 py-2 text-[var(--text-muted)]">No ratings yet</td>
+                                    <td colSpan={6} className="px-3 py-2 text-[var(--text-muted)]">No ratings yet</td>
                                   </tr>
                                 ) : (
-                                  beerRatings.map((r) => (
-                                    <tr key={r.id} className="text-[var(--text-body)]">
-                                      <td className="px-3 py-2 font-medium">{playerMap.get(r.player_id)?.name ?? "—"}</td>
-                                      <td className="px-3 py-2">{r.crushability ?? "—"}</td>
-                                      <td className="px-3 py-2">{r.taste ?? "—"}</td>
-                                      <td className="px-3 py-2 max-w-[120px] truncate" title={r.guess ?? ""}>{r.guess ?? "—"}</td>
-                                      <td className="px-3 py-2 whitespace-normal break-words">{r.notes ?? "—"}</td>
-                                    </tr>
-                                  ))
+                                  beerRatings.map((r) => {
+                                    const isEditing = editingRating?.id === r.id;
+                                    return (
+                                      <tr key={r.id} className="text-[var(--text-body)]">
+                                        {isEditing ? (
+                                          <td colSpan={6} className="px-3 py-2 bg-amber-50/80">
+                                            <div className="flex flex-wrap gap-2 items-end">
+                                              <div>
+                                                <label className="block text-[10px] text-[var(--text-muted)]">Crush</label>
+                                                <input
+                                                  type="number"
+                                                  min={1}
+                                                  max={10}
+                                                  value={editForm.crushability}
+                                                  onChange={(e) => setEditForm((f) => ({ ...f, crushability: parseInt(e.target.value, 10) || 0 }))}
+                                                  className="w-14 rounded border border-[var(--border-amber)] bg-white px-1.5 py-1 text-sm"
+                                                />
+                                              </div>
+                                              <div>
+                                                <label className="block text-[10px] text-[var(--text-muted)]">Taste</label>
+                                                <input
+                                                  type="number"
+                                                  min={1}
+                                                  max={10}
+                                                  value={editForm.taste}
+                                                  onChange={(e) => setEditForm((f) => ({ ...f, taste: parseInt(e.target.value, 10) || 0 }))}
+                                                  className="w-14 rounded border border-[var(--border-amber)] bg-white px-1.5 py-1 text-sm"
+                                                />
+                                              </div>
+                                              <div className="min-w-[100px] flex-1">
+                                                <label className="block text-[10px] text-[var(--text-muted)]">Guess</label>
+                                                <input
+                                                  type="text"
+                                                  value={editForm.guess}
+                                                  onChange={(e) => setEditForm((f) => ({ ...f, guess: e.target.value }))}
+                                                  className="w-full rounded border border-[var(--border-amber)] bg-white px-1.5 py-1 text-sm"
+                                                />
+                                              </div>
+                                              <div className="min-w-[120px] flex-1">
+                                                <label className="block text-[10px] text-[var(--text-muted)]">Notes</label>
+                                                <textarea
+                                                  value={editForm.notes}
+                                                  onChange={(e) => setEditForm((f) => ({ ...f, notes: e.target.value }))}
+                                                  rows={2}
+                                                  className="w-full rounded border border-[var(--border-amber)] bg-white px-1.5 py-1 text-sm resize-none"
+                                                />
+                                              </div>
+                                              <div className="flex gap-1">
+                                                <button
+                                                  type="button"
+                                                  onClick={async () => {
+                                                    if (!editingRating) return;
+                                                    setSavingRating(true);
+                                                    const supabase = createSupabaseClient();
+                                                    await supabase.from("ratings").upsert({
+                                                      session_id: editingRating.session_id,
+                                                      player_id: editingRating.player_id,
+                                                      beer_number: editingRating.beer_number,
+                                                      crushability: editForm.crushability,
+                                                      taste: editForm.taste,
+                                                      guess: editForm.guess.trim() || null,
+                                                      notes: editForm.notes.trim() || null,
+                                                    }, { onConflict: "player_id,beer_number" });
+                                                    await fetchResultsData();
+                                                    setEditingRating(null);
+                                                    setSavingRating(false);
+                                                  }}
+                                                  disabled={savingRating || editForm.crushability < 1 || editForm.crushability > 10 || editForm.taste < 1 || editForm.taste > 10}
+                                                  className="rounded bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-medium px-2 py-1 text-xs disabled:opacity-50"
+                                                >
+                                                  💾 Save
+                                                </button>
+                                                <button
+                                                  type="button"
+                                                  onClick={() => setEditingRating(null)}
+                                                  disabled={savingRating}
+                                                  className="rounded border border-[var(--border-amber)] bg-white hover:bg-amber-50 px-2 py-1 text-xs disabled:opacity-50"
+                                                >
+                                                  ✕ Cancel
+                                                </button>
+                                              </div>
+                                            </div>
+                                          </td>
+                                        ) : (
+                                          <>
+                                            <td className="px-3 py-2 font-medium">{playerMap.get(r.player_id)?.name ?? "—"}</td>
+                                            <td className="px-3 py-2">{r.crushability ?? "—"}</td>
+                                            <td className="px-3 py-2">{r.taste ?? "—"}</td>
+                                            <td className="px-3 py-2 max-w-[120px] truncate" title={r.guess ?? ""}>{r.guess ?? "—"}</td>
+                                            <td className="px-3 py-2 whitespace-normal break-words">{r.notes ?? "—"}</td>
+                                            <td className="px-3 py-2 w-10">
+                                              <button
+                                                type="button"
+                                                onClick={() => {
+                                                  setEditingRating(r);
+                                                  setEditForm({
+                                                    crushability: r.crushability ?? 0,
+                                                    taste: r.taste ?? 0,
+                                                    guess: r.guess ?? "",
+                                                    notes: r.notes ?? "",
+                                                  });
+                                                }}
+                                                className="text-sm hover:opacity-80"
+                                                title="Edit rating"
+                                              >
+                                                ✏️
+                                              </button>
+                                            </td>
+                                          </>
+                                        )}
+                                      </tr>
+                                    );
+                                  })
                                 )}
                               </tbody>
                             </table>
