@@ -29,63 +29,68 @@ function UserVsGroupChart({
     <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-4">
       <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">{title}</h3>
       <p className="text-[10px] text-[var(--text-muted)] mb-2">▬ Group average</p>
-      <div className="flex flex-row gap-0 overflow-x-auto pb-2">
+      <div className="flex items-end gap-1 overflow-x-auto pb-2">
         <div
-          className="flex flex-col justify-between shrink-0 pr-1.5 border-r border-amber-600 text-right text-[10px] text-amber-800 font-medium"
+          className="flex flex-col justify-between shrink-0 pr-1 text-right text-[10px] text-amber-800 font-medium"
           style={{ height: CHART_HEIGHT_PX }}
         >
           {Y_AXIS_TICKS.map((t) => (
             <span key={t}>{t}</span>
           ))}
         </div>
-        <div className="flex-1 min-w-0 relative" style={{ height: CHART_HEIGHT_PX + 48 }}>
-          {[40, 80, 120, 160].map((bottom) => (
-            <div
-              key={bottom}
-              className="absolute left-0 right-0 border-t border-amber-400/20 pointer-events-none"
-              style={{ bottom: 48 + bottom }}
-            />
-          ))}
-          <div className="flex gap-[8px] items-end flex-nowrap relative z-10 px-1" style={{ height: CHART_HEIGHT_PX + 48 }}>
+        <div className="flex-1 min-w-0 overflow-x-auto">
+          <div
+            className="relative flex items-end gap-2 border-l border-b border-amber-600"
+            style={{ height: CHART_HEIGHT_PX }}
+          >
+            {([0, 20, 40, 60, 80] as const).map((pct) => (
+              <div
+                key={pct}
+                className="absolute left-0 right-0 h-px bg-amber-400/20 pointer-events-none"
+                style={{ top: `${pct}%` }}
+              />
+            ))}
             {rows.map((row) => {
               const userScore = getValue(row);
               const groupAvg = getGroupAvg(row.beerNumber);
-              const heightPx = (userScore / 10) * CHART_HEIGHT_PX;
-              const lineBottomPx = (groupAvg / 10) * CHART_HEIGHT_PX;
+              const barPct = Math.max(0, (userScore / 10) * 100);
+              const groupLinePct = groupAvg >= 0 && groupAvg <= 10 ? (groupAvg / 10) * 100 : null;
               const isAboveAvg = userScore >= groupAvg;
               const barColor = isAboveAvg ? "bg-amber-500" : "bg-amber-300";
+              return (
+                <div
+                  key={row.beerNumber}
+                  className="shrink-0 flex flex-col justify-end relative"
+                  style={{ width: BAR_WIDTH_PX, height: CHART_HEIGHT_PX }}
+                >
+                  <div
+                    className={`w-full rounded-t ${barColor}`}
+                    style={{ height: `${barPct}%`, minHeight: barPct > 0 ? 4 : 0 }}
+                  />
+                  {groupLinePct != null && groupLinePct > 0 && (
+                    <div
+                      className="absolute left-0 right-0 h-0.5 bg-red-800 z-20 pointer-events-none"
+                      style={{ bottom: `${groupLinePct}%` }}
+                      title={`Group avg: ${groupAvg.toFixed(1)}`}
+                    />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className="flex gap-2 mt-1 flex-nowrap">
+            {rows.map((row) => {
               const beerName = getBeerName?.(row.beerNumber) ?? null;
               return (
                 <div
                   key={row.beerNumber}
-                  className="flex flex-col items-center shrink-0 relative"
+                  className="shrink-0 text-center text-xs w-full"
                   style={{ width: BAR_WIDTH_PX }}
                 >
-                  <span className="text-xs font-semibold text-[var(--text-heading)] mb-0.5">
-                    {userScore.toFixed(1)}
-                  </span>
-                  <div
-                    className="w-full flex flex-col justify-end rounded-t relative"
-                    style={{ height: CHART_HEIGHT_PX }}
-                  >
-                    <div
-                      className={`w-full rounded-t ${barColor}`}
-                      style={{ height: `${heightPx}px`, minHeight: heightPx > 0 ? 4 : 0 }}
-                    />
-                    {groupAvg > 0 && groupAvg <= 10 && (
-                      <div
-                        className="absolute left-0 right-0 border-t-2 border-red-700 z-20 pointer-events-none"
-                        style={{ bottom: lineBottomPx - 1 }}
-                        title={`Group avg: ${groupAvg.toFixed(1)}`}
-                      />
-                    )}
-                  </div>
-                  <div className="text-center text-xs mt-1 w-full">
-                    <div className="text-[var(--text-muted)]">Beer #{row.beerNumber}</div>
-                    {beerName && (
-                      <div className="text-amber-700 font-semibold truncate" title={beerName}>{beerName}</div>
-                    )}
-                  </div>
+                  <div className="text-[var(--text-muted)]">Beer #{row.beerNumber}</div>
+                  {beerName && (
+                    <div className="text-amber-700 font-semibold truncate" title={beerName}>{beerName}</div>
+                  )}
                 </div>
               );
             })}
