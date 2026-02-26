@@ -64,6 +64,11 @@ export default function CreatePage() {
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm mb-6 inline-block">
           ← Back
         </Link>
+        <img
+          src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+          alt=""
+          className="w-[120px] h-auto mx-auto mb-4 rounded-lg"
+        />
         {!createdCode ? (
           <>
             <h1 className="text-2xl font-bold text-[var(--text-heading)] mb-6">Create a tasting session</h1>

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
 import type { BeerReveal, Player, Rating } from "@/types/database";
 
-type ResultsSection = "overall" | "taste" | "crush" | "guesses" | "chart" | "individual";
+type ResultsSection = "overall" | "taste" | "crush" | "guesses" | "individual";
 
 type BeerStat = {
   beerNumber: number;
@@ -167,9 +167,66 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     { id: "taste", label: "Taste" },
     { id: "crush", label: "Crushability" },
     { id: "guesses", label: "Guess accuracy" },
-    { id: "chart", label: "Score chart" },
     { id: "individual", label: "Individual ratings" },
   ];
+
+  const CHART_HEIGHT_PX = 200;
+  const BAR_WIDTH_PX = 32;
+  const BAR_GAP_PX = 8;
+
+  function ResultsBarChart({
+    rows,
+    getValue,
+    barColor,
+  }: {
+    rows: BeerStat[];
+    getValue: (row: BeerStat) => number;
+    barColor: string;
+  }) {
+    const label = (row: BeerStat) =>
+      row.name ? (row.name.length > 10 ? row.name.slice(0, 10) + "…" : row.name) : `Beer ${row.beerNumber}`;
+    return (
+      <div className="overflow-x-auto pb-2 -mx-1">
+        <div className="relative flex gap-[8px] items-end px-1" style={{ height: CHART_HEIGHT_PX + 48 }}>
+          {/* Reference line at y=5 (50%) */}
+          <div
+            className="absolute left-0 right-0 border-t border-amber-300/60 border-dashed z-0 pointer-events-none"
+            style={{ bottom: 48 + (5 / 10) * CHART_HEIGHT_PX }}
+          />
+          <div className="flex gap-[8px] items-end flex-nowrap relative z-10">
+            {rows.map((row) => {
+              const score = row.ratings.length ? getValue(row) : 0;
+              const heightPx = (score / 10) * CHART_HEIGHT_PX;
+              return (
+                <div
+                  key={row.beerNumber}
+                  className="flex flex-col items-center shrink-0"
+                  style={{ width: BAR_WIDTH_PX }}
+                >
+                  <span className="text-xs font-semibold text-[var(--text-heading)] mb-0.5">
+                    {row.ratings.length ? score.toFixed(1) : "—"}
+                  </span>
+                  <div
+                    className="w-full flex flex-col justify-end rounded-t"
+                    style={{ height: CHART_HEIGHT_PX }}
+                  >
+                    <div
+                      className={`w-full rounded-t ${barColor}`}
+                      style={{ height: `${heightPx}px`, minHeight: heightPx > 0 ? 4 : 0 }}
+                      title={row.ratings.length ? `${score.toFixed(1)}` : "No ratings"}
+                    />
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)] text-center mt-1 truncate w-full" title={row.name ?? `Beer ${row.beerNumber}`}>
+                    {label(row)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   function BeerRankTable({ rows, sortLabel }: { rows: BeerStat[]; sortLabel: string }) {
     return (
@@ -214,9 +271,16 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--text-heading)]">{sessionName}</h1>
-          <p className="text-[var(--text-muted)] text-sm">Code: <span className="font-mono">{code}</span> · Share this so players can join</p>
+        <div className="flex items-center gap-3">
+          <img
+            src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+            alt=""
+            className="w-[80px] h-auto rounded-lg shrink-0"
+          />
+          <div>
+            <h1 className="text-2xl font-bold text-[var(--text-heading)]">{sessionName}</h1>
+            <p className="text-[var(--text-muted)] text-sm">Code: <span className="font-mono">{code}</span> · Share this so players can join</p>
+          </div>
         </div>
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm">
           Home
@@ -387,6 +451,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                 <section>
                   <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Overall leaderboard</h2>
                   <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by combined score (avg crush + avg taste) / 2</p>
+                  <div className="mb-4">
+                    <ResultsBarChart
+                      rows={resultsByBeer}
+                      getValue={(row) => row.combined}
+                      barColor="bg-amber-500"
+                    />
+                  </div>
                   <BeerRankTable rows={overallRanked} sortLabel="Combined" />
                 </section>
               )}
@@ -395,6 +466,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                 <section>
                   <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Taste rankings</h2>
                   <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by average taste score</p>
+                  <div className="mb-4">
+                    <ResultsBarChart
+                      rows={resultsByBeer}
+                      getValue={(row) => row.avgTaste}
+                      barColor="bg-amber-700"
+                    />
+                  </div>
                   <BeerRankTable rows={tasteRanked} sortLabel="Avg taste" />
                 </section>
               )}
@@ -403,6 +481,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                 <section>
                   <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Crushability rankings</h2>
                   <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by average crushability score</p>
+                  <div className="mb-4">
+                    <ResultsBarChart
+                      rows={resultsByBeer}
+                      getValue={(row) => row.avgCrush}
+                      barColor="bg-[var(--amber-gold)]"
+                    />
+                  </div>
                   <BeerRankTable rows={crushRanked} sortLabel="Avg crush" />
                 </section>
               )}
@@ -436,50 +521,6 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                         )}
                       </tbody>
                     </table>
-                  </div>
-                </section>
-              )}
-
-              {resultsSection === "chart" && (
-                <section>
-                  <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Beer score comparison</h2>
-                  <p className="text-[var(--text-muted)] text-sm mb-4">Vertical bars: amber = avg taste, gold = avg crushability (0–10). Sorted by beer number.</p>
-                  <div className="flex flex-wrap gap-6 justify-start">
-                    {resultsByBeer.map((row) => {
-                      const tastePct = row.ratings.length ? (row.avgTaste / 10) * 100 : 0;
-                      const crushPct = row.ratings.length ? (row.avgCrush / 10) * 100 : 0;
-                      const label = row.name ? `#${row.beerNumber} ${row.name}` : `Beer #${row.beerNumber}`;
-                      return (
-                        <div key={row.beerNumber} className="flex flex-col items-center gap-1 shrink-0 w-16">
-                          <p className="text-xs font-medium text-[var(--text-heading)] text-center w-full truncate" title={label}>
-                            {label}
-                          </p>
-                          <div className="flex gap-1.5 items-end h-28 w-full justify-center">
-                            <div className="flex flex-col items-center flex-1 min-w-0">
-                              <span className="text-xs font-semibold text-amber-600">{row.ratings.length ? row.avgTaste.toFixed(1) : "—"}</span>
-                              <div className="flex-1 w-full min-h-0 flex flex-col justify-end">
-                                <div
-                                  className="w-full rounded-t bg-amber-500 min-h-[3px] transition-all"
-                                  style={{ height: `${Math.max(3, tastePct)}%` }}
-                                  title={`Taste: ${row.avgTaste.toFixed(1)}`}
-                                />
-                              </div>
-                            </div>
-                            <div className="flex flex-col items-center flex-1 min-w-0">
-                              <span className="text-xs font-semibold text-[var(--amber-gold)]">{row.ratings.length ? row.avgCrush.toFixed(1) : "—"}</span>
-                              <div className="flex-1 w-full min-h-0 flex flex-col justify-end">
-                                <div
-                                  className="w-full rounded-t bg-[var(--amber-gold)] min-h-[3px] transition-all"
-                                  style={{ height: `${Math.max(3, crushPct)}%` }}
-                                  title={`Crush: ${row.avgCrush.toFixed(1)}`}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                          <p className="text-[10px] text-[var(--text-muted)]">T · C</p>
-                        </div>
-                      );
-                    })}
                   </div>
                 </section>
               )}
@@ -522,7 +563,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                       <td className="px-3 py-2">{r.crushability ?? "—"}</td>
                                       <td className="px-3 py-2">{r.taste ?? "—"}</td>
                                       <td className="px-3 py-2 max-w-[120px] truncate" title={r.guess ?? ""}>{r.guess ?? "—"}</td>
-                                      <td className="px-3 py-2 max-w-[140px] truncate" title={r.notes ?? ""}>{r.notes ?? "—"}</td>
+                                      <td className="px-3 py-2 whitespace-normal break-words">{r.notes ?? "—"}</td>
                                     </tr>
                                   ))
                                 )}

@@ -217,6 +217,11 @@ export default function SessionPlayPage() {
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm inline-block mb-4">
           Home
         </Link>
+        <img
+          src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+          alt=""
+          className="w-[120px] h-auto mx-auto mb-4 rounded-lg"
+        />
         <h1 className="text-2xl font-bold text-[var(--text-heading)]">Which beer are you tasting?</h1>
         <select
           value={pickerSelection === "" ? "" : pickerSelection}

@@ -75,7 +75,11 @@ export default function SessionDonePage() {
         <h1 className="text-3xl font-bold text-[var(--text-heading)] text-center">
           🎉 You&apos;re done, {playerName}!
         </h1>
-
+        <img
+          src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+          alt=""
+          className="w-[120px] h-auto mx-auto rounded-lg"
+        />
         <div className="space-y-4">
           {sortedRatings.length === 0 ? (
             <p className="text-[var(--text-muted)] text-center">You haven&apos;t rated any beers yet.</p>
@@ -133,10 +137,16 @@ export default function SessionDonePage() {
         </p>
 
         <Link
-          href="/"
+          href={`/session/${code}/play`}
           className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors"
         >
-          Back to home
+          ← Keep Rating Beers
+        </Link>
+        <Link
+          href="/"
+          className="block w-full text-center rounded-xl bg-white border-2 border-[var(--border-amber)] hover:bg-amber-50 text-[var(--text-heading)] font-bold py-3.5 transition-colors"
+        >
+          Back to Home
         </Link>
       </div>
     </div>

@@ -89,9 +89,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
       <div className="w-full max-w-[480px] mx-auto">
-        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-10 text-[var(--text-heading)]">
+        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[var(--text-heading)]">
           🍺 Blind Beer Tasting
         </h1>
+        <img
+          src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+          alt=""
+          className="w-[120px] h-auto mx-auto mb-6 rounded-lg"
+        />
         <form onSubmit={handleJoin} className="space-y-4">
           <input
             type="text"

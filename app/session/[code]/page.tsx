@@ -120,6 +120,11 @@ export default function SessionJoinPage() {
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm mb-6 inline-block">
           ← Back
         </Link>
+        <img
+          src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+          alt=""
+          className="w-[120px] h-auto mx-auto mb-4 rounded-lg"
+        />
         <h1 className="text-2xl font-bold text-[var(--text-heading)] mb-1">{sessionName}</h1>
         <h2 className="text-xl text-[var(--text-muted)] mb-6">Join the Tasting</h2>
         <form onSubmit={handleSubmit} className="space-y-4">
