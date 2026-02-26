@@ -31,7 +31,7 @@ function GroupBarChart({
       <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">{title}</h3>
       <p className="text-[10px] text-[var(--text-muted)] mb-2">▬ Group average</p>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }}>
-        <div style={{ position: "relative", height: `${CHART_HEIGHT}px`, width: "24px", flexShrink: 0 }}>
+        <div style={{ position: "relative", height: "200px", width: "24px", flexShrink: 0 }}>
           {[10, 8, 6, 4, 2, 0].map((val, i) => (
             <span
               key={val}
@@ -49,48 +49,46 @@ function GroupBarChart({
             </span>
           ))}
         </div>
-        <div
-          style={{
-            position: "relative",
-            height: `${CHART_HEIGHT}px`,
-            display: "flex",
-            alignItems: "flex-end",
-            gap: "8px",
-            borderLeft: "1px solid #d97706",
-            borderBottom: "1px solid #d97706",
-            paddingLeft: "4px",
-            overflowX: "auto",
-            flexGrow: 1,
-          }}
-        >
-          {[0, 40, 80, 120, 160, 200].map((topPx) => (
-            <div
-              key={topPx}
-              style={{
-                position: "absolute",
-                top: `${topPx}px`,
-                left: 0,
-                right: 0,
-                height: "1px",
-                background: "rgba(217,119,6,0.15)",
-                pointerEvents: "none",
-              }}
-            />
-          ))}
-          {rows.map((row) => {
-            const groupAvg = getGroupValue(row);
-            const playerScore = getPlayerScore(row.beerNumber);
-            const hasPlayerRating = playerScore != null && playerScore >= 0 && playerScore <= 10;
-            const barValue = hasPlayerRating ? playerScore! : groupAvg;
-            const barHeightPx = pxFromScore(barValue);
-            const groupLineBottomPx = groupAvg >= 0 && groupAvg <= 10 ? pxFromScore(groupAvg) : null;
-            const barColor = hasPlayerRating ? "#d97706" : "#fcd34d";
-            return (
+        <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, overflowX: "auto" }}>
+          <div
+            style={{
+              position: "relative",
+              height: "200px",
+              display: "flex",
+              alignItems: "flex-end",
+              gap: "8px",
+              borderLeft: "1px solid #d97706",
+              borderBottom: "1px solid #d97706",
+              paddingLeft: "4px",
+            }}
+          >
+            {[0, 40, 80, 120, 160].map((topPx) => (
               <div
-                key={row.beerNumber}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}
-              >
-                <div style={{ position: "relative", height: `${CHART_HEIGHT}px`, width: `${BAR_WIDTH}px` }}>
+                key={topPx}
+                style={{
+                  position: "absolute",
+                  top: `${topPx}px`,
+                  left: 0,
+                  right: 0,
+                  height: "1px",
+                  background: "rgba(217,119,6,0.15)",
+                  pointerEvents: "none",
+                }}
+              />
+            ))}
+            {rows.map((row) => {
+              const groupAvg = getGroupValue(row);
+              const playerScore = getPlayerScore(row.beerNumber);
+              const hasPlayerRating = playerScore != null && playerScore >= 0 && playerScore <= 10;
+              const barValue = hasPlayerRating ? playerScore! : groupAvg;
+              const barHeightPx = pxFromScore(barValue);
+              const groupLineBottomPx = groupAvg >= 0 && groupAvg <= 10 ? pxFromScore(groupAvg) : null;
+              const barColor = hasPlayerRating ? "#d97706" : "#fcd34d";
+              return (
+                <div
+                  key={row.beerNumber}
+                  style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}
+                >
                   {hasPlayerRating && groupLineBottomPx != null && groupLineBottomPx > 0 && (
                     <div
                       style={{
@@ -119,12 +117,25 @@ function GroupBarChart({
                     }}
                   />
                 </div>
-                <div style={{ fontSize: "11px", textAlign: "center", marginTop: "4px", color: "#92400e" }}>
-                  Beer #{row.beerNumber}
-                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: "8px", paddingLeft: "4px", marginTop: "4px" }}>
+            {rows.map((row) => (
+              <div
+                key={row.beerNumber}
+                style={{
+                  width: "32px",
+                  fontSize: "11px",
+                  textAlign: "center",
+                  color: "#92400e",
+                  flexShrink: 0,
+                }}
+              >
+                Beer<br />#{row.beerNumber}
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </div>
     </div>

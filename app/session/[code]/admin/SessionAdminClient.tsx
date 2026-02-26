@@ -199,7 +199,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       row.name ? (row.name.length > 10 ? row.name.slice(0, 10) + "…" : row.name) : `Beer ${row.beerNumber}`;
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }} className="-mx-1 pb-2 overflow-x-auto">
-        <div style={{ position: "relative", height: `${CHART_HEIGHT}px`, width: "24px", flexShrink: 0 }}>
+        <div style={{ position: "relative", height: "200px", width: "24px", flexShrink: 0 }}>
           {[10, 8, 6, 4, 2, 0].map((val, i) => (
             <span
               key={val}
@@ -217,61 +217,63 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
             </span>
           ))}
         </div>
-        <div
-          style={{
-            position: "relative",
-            height: `${CHART_HEIGHT}px`,
-            display: "flex",
-            alignItems: "flex-end",
-            gap: "8px",
-            borderLeft: "1px solid #d97706",
-            borderBottom: "1px solid #d97706",
-            paddingLeft: "4px",
-            overflowX: "auto",
-            flexGrow: 1,
-          }}
-        >
-          {[0, 40, 80, 120, 160, 200].map((topPx) => (
-            <div
-              key={topPx}
-              style={{
-                position: "absolute",
-                top: `${topPx}px`,
-                left: 0,
-                right: 0,
-                height: "1px",
-                background: "rgba(217,119,6,0.15)",
-                pointerEvents: "none",
-              }}
-            />
-          ))}
-          {rows.map((row) => {
-            const score = row.ratings.length ? getValue(row) : 0;
-            const barHeightPx = pxFromScore(score);
-            return (
+        <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, overflowX: "auto" }}>
+          <div
+            style={{
+              position: "relative",
+              height: "200px",
+              display: "flex",
+              alignItems: "flex-end",
+              gap: "8px",
+              borderLeft: "1px solid #d97706",
+              borderBottom: "1px solid #d97706",
+              paddingLeft: "4px",
+            }}
+          >
+            {[0, 40, 80, 120, 160].map((topPx) => (
               <div
-                key={row.beerNumber}
-                style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}
-              >
+                key={topPx}
+                style={{
+                  position: "absolute",
+                  top: `${topPx}px`,
+                  left: 0,
+                  right: 0,
+                  height: "1px",
+                  background: "rgba(217,119,6,0.15)",
+                  pointerEvents: "none",
+                }}
+              />
+            ))}
+            {rows.map((row) => {
+              const score = row.ratings.length ? getValue(row) : 0;
+              const barHeightPx = pxFromScore(score);
+              return (
                 <div
+                  key={row.beerNumber}
                   className={`rounded-t ${barColor}`}
                   style={{
                     height: `${barHeightPx}px`,
                     width: `${BAR_WIDTH}px`,
                     minHeight: barHeightPx > 0 ? 2 : 0,
+                    flexShrink: 0,
                   }}
                   title={row.ratings.length ? `${score.toFixed(1)}` : "No ratings"}
                 />
-                <div
-                  className="text-[10px] text-[var(--text-muted)] text-center truncate"
-                  style={{ width: BAR_WIDTH, marginTop: "4px" }}
-                  title={row.name ?? `Beer ${row.beerNumber}`}
-                >
-                  {label(row)}
-                </div>
+              );
+            })}
+          </div>
+          <div style={{ display: "flex", gap: "8px", paddingLeft: "4px", marginTop: "4px" }}>
+            {rows.map((row) => (
+              <div
+                key={row.beerNumber}
+                className="text-[10px] text-[var(--text-muted)] text-center truncate"
+                style={{ width: BAR_WIDTH, flexShrink: 0 }}
+                title={row.name ?? `Beer ${row.beerNumber}`}
+              >
+                {label(row)}
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </div>
     );
