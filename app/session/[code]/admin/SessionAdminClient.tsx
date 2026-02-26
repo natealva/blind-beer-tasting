@@ -181,7 +181,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
 
   const CHART_HEIGHT_PX = 200;
   const BAR_WIDTH_PX = 32;
-  const Y_AXIS_TICKS = [10, 8, 6, 4, 2, 0];
+  const Y_AXIS_VALUES = [10, 8, 6, 4, 2, 0];
 
   function ResultsBarChart({
     rows,
@@ -195,25 +195,41 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     const label = (row: BeerStat) =>
       row.name ? (row.name.length > 10 ? row.name.slice(0, 10) + "…" : row.name) : `Beer ${row.beerNumber}`;
     return (
-      <div className="flex items-end gap-1 overflow-x-auto pb-2 -mx-1">
-        <div
-          className="flex flex-col justify-between shrink-0 pr-1 text-right text-[10px] text-amber-800 font-medium"
-          style={{ height: CHART_HEIGHT_PX }}
-        >
-          {Y_AXIS_TICKS.map((t) => (
-            <span key={t}>{t}</span>
+      <div className="flex items-end overflow-x-auto pb-2 -mx-1" style={{ gap: 8 }}>
+        <div style={{ position: "relative", height: CHART_HEIGHT_PX, marginRight: 8, width: 24 }}>
+          {Y_AXIS_VALUES.map((val, i) => (
+            <span
+              key={val}
+              style={{
+                position: "absolute",
+                top: `${i * 40}px`,
+                right: 0,
+                fontSize: "11px",
+                color: "#92400e",
+                transform: "translateY(-50%)",
+                lineHeight: 1,
+              }}
+            >
+              {val}
+            </span>
           ))}
         </div>
         <div className="flex-1 min-w-0 overflow-x-auto">
           <div
-            className="relative flex items-end gap-2 border-l border-b border-amber-600"
-            style={{ height: CHART_HEIGHT_PX }}
+            className="relative flex items-end border-l border-b border-amber-600"
+            style={{ height: CHART_HEIGHT_PX, gap: 8 }}
           >
-            {([0, 20, 40, 60, 80] as const).map((pct) => (
+            {[0, 1, 2, 3, 4, 5].map((i) => (
               <div
-                key={pct}
-                className="absolute left-0 right-0 h-px bg-amber-400/20 pointer-events-none"
-                style={{ top: `${pct}%` }}
+                key={i}
+                style={{
+                  position: "absolute",
+                  top: `${i * 40}px`,
+                  left: 0,
+                  right: 0,
+                  height: "1px",
+                  background: "rgba(217,119,6,0.2)",
+                }}
               />
             ))}
             {rows.map((row) => {
