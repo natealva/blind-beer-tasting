@@ -1,12 +1,90 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRandomBeerGif } from "@/lib/beerGifs";
 import type { Rating, BeerReveal } from "@/types/database";
+
+const CHART_HEIGHT_PX = 200;
+const BAR_WIDTH_PX = 32;
+const Y_AXIS_TICKS = [10, 8, 6, 4, 2, 0];
+
+function GroupBarChart({
+  rows,
+  getGroupValue,
+  getPlayerScore,
+  title,
+}: {
+  rows: { beerNumber: number; groupAvg: number }[];
+  getGroupValue: (r: { groupAvg: number }) => number;
+  getPlayerScore: (beerNumber: number) => number | null;
+  title: string;
+}) {
+  return (
+    <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-4">
+      <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">{title}</h3>
+      <p className="text-[10px] text-[var(--text-muted)] mb-2">▬ Your score (if rated)</p>
+      <div className="flex flex-row gap-0 overflow-x-auto pb-2">
+        <div
+          className="flex flex-col justify-between shrink-0 pr-1.5 border-r border-amber-600 text-right text-[10px] text-amber-800 font-medium"
+          style={{ height: CHART_HEIGHT_PX }}
+        >
+          {Y_AXIS_TICKS.map((t) => (
+            <span key={t}>{t}</span>
+          ))}
+        </div>
+        <div className="flex-1 min-w-0 relative" style={{ height: CHART_HEIGHT_PX + 48 }}>
+          {[40, 80, 120, 160].map((bottom) => (
+            <div
+              key={bottom}
+              className="absolute left-0 right-0 border-t border-amber-400/20 pointer-events-none"
+              style={{ bottom: 48 + bottom }}
+            />
+          ))}
+          <div className="flex gap-[8px] items-end flex-nowrap relative z-10 px-1" style={{ height: CHART_HEIGHT_PX + 48 }}>
+            {rows.map((row) => {
+              const groupAvg = getGroupValue(row);
+              const playerScore = getPlayerScore(row.beerNumber);
+              const heightPx = (groupAvg / 10) * CHART_HEIGHT_PX;
+              const playerLineBottomPx = playerScore != null ? (playerScore / 10) * CHART_HEIGHT_PX : null;
+              return (
+                <div
+                  key={row.beerNumber}
+                  className="flex flex-col items-center shrink-0 relative"
+                  style={{ width: BAR_WIDTH_PX }}
+                >
+                  <span className="text-xs font-semibold text-[var(--text-heading)] mb-0.5">
+                    {groupAvg.toFixed(1)}
+                  </span>
+                  <div
+                    className="w-full flex flex-col justify-end rounded-t relative"
+                    style={{ height: CHART_HEIGHT_PX }}
+                  >
+                    <div
+                      className="w-full rounded-t bg-amber-500"
+                      style={{ height: `${heightPx}px`, minHeight: heightPx > 0 ? 4 : 0 }}
+                    />
+                    {playerScore != null && playerScore >= 0 && playerScore <= 10 && (
+                      <div
+                        className="absolute left-0 right-0 border-t-2 border-amber-800 z-20 pointer-events-none"
+                        style={{ bottom: playerLineBottomPx! - 1 }}
+                        title={`Your score: ${playerScore.toFixed(1)}`}
+                      />
+                    )}
+                  </div>
+                  <span className="text-[10px] text-[var(--text-muted)] mt-1">Beer #{row.beerNumber}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function getPlayerFromStorage(code: string): { playerId: string; playerName: string } | null {
   if (typeof window === "undefined") return null;
@@ -34,6 +112,14 @@ export default function SessionPlayPage() {
   const [saving, setSaving] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [currentGif, setCurrentGif] = useState<string>(getRandomBeerGif());
+  const [allSessionRatings, setAllSessionRatings] = useState<Rating[]>([]);
+
+  const fetchAllSessionRatings = useCallback(async () => {
+    if (!sessionId) return;
+    const supabase = createSupabaseClient();
+    const { data } = await supabase.from("ratings").select("*").eq("session_id", sessionId);
+    setAllSessionRatings(data ?? []);
+  }, [sessionId]);
 
   useEffect(() => {
     const player = getPlayerFromStorage(code);
@@ -71,6 +157,12 @@ export default function SessionPlayPage() {
           .eq("player_id", player.playerId)
           .then(({ data }) => setRatings(data ?? []));
 
+        supabase
+          .from("ratings")
+          .select("*")
+          .eq("session_id", session.id)
+          .then(({ data }) => setAllSessionRatings(data ?? []));
+
         setLoading(false);
       });
   }, [code, router]);
@@ -79,6 +171,41 @@ export default function SessionPlayPage() {
     () => Array.from({ length: beerCount }, (_, i) => i + 1),
     [beerCount]
   );
+
+  const groupChartData = useMemo(() => {
+    const tasteByBeer = new Map<number, number[]>();
+    const crushByBeer = new Map<number, number[]>();
+    for (const r of allSessionRatings) {
+      if (r.taste != null) {
+        const arr = tasteByBeer.get(r.beer_number) ?? [];
+        arr.push(r.taste);
+        tasteByBeer.set(r.beer_number, arr);
+      }
+      if (r.crushability != null) {
+        const arr = crushByBeer.get(r.beer_number) ?? [];
+        arr.push(r.crushability);
+        crushByBeer.set(r.beer_number, arr);
+      }
+    }
+    const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
+    const tasteRows = Array.from(tasteByBeer.entries())
+      .map(([beerNumber, vals]) => ({ beerNumber, groupAvg: avg(vals) }))
+      .sort((a, b) => a.beerNumber - b.beerNumber);
+    const crushRows = Array.from(crushByBeer.entries())
+      .map(([beerNumber, vals]) => ({ beerNumber, groupAvg: avg(vals) }))
+      .sort((a, b) => a.beerNumber - b.beerNumber);
+    const getPlayerTaste = (beerNumber: number) => {
+      const r = ratings.find((x) => x.beer_number === beerNumber);
+      return r?.taste ?? null;
+    };
+    const getPlayerCrush = (beerNumber: number) => {
+      const r = ratings.find((x) => x.beer_number === beerNumber);
+      return r?.crushability ?? null;
+    };
+    return { tasteRows, crushRows, getPlayerTaste, getPlayerCrush };
+  }, [allSessionRatings, ratings]);
+
+  const hasAnyGroupRatings = allSessionRatings.length > 0;
 
   const allComplete = beerCount > 0 && ratings.length >= beerCount;
   const showCompletionScreen = phase === "picker" && allComplete && !completionDismissed;
@@ -129,6 +256,7 @@ export default function SessionPlayPage() {
     setSelectedBeerNumber(null);
     setPhase("picker");
     setCurrentGif(getRandomBeerGif());
+    fetchAllSessionRatings();
     if ((updated?.length ?? 0) >= beerCount) setCompletionDismissed(false);
   }
 
@@ -137,6 +265,7 @@ export default function SessionPlayPage() {
     setPhase("picker");
     setPickerSelection("");
     setCurrentGif(getRandomBeerGif());
+    fetchAllSessionRatings();
   }
 
   if (loading) {
@@ -202,6 +331,7 @@ export default function SessionPlayPage() {
               onClick={() => {
                 setCurrentGif(getRandomBeerGif());
                 setCompletionDismissed(true);
+                fetchAllSessionRatings();
               }}
               className="w-full rounded-xl bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] font-bold py-3.5 transition-colors hover:bg-amber-50"
             >
@@ -265,6 +395,24 @@ export default function SessionPlayPage() {
             View my summary →
           </Link>
         </p>
+
+        {hasAnyGroupRatings && (
+          <section className="space-y-4">
+            <h2 className="text-lg font-bold text-[var(--text-heading)]">📊 Group Scores So Far</h2>
+            <GroupBarChart
+              rows={groupChartData.tasteRows}
+              getGroupValue={(r) => r.groupAvg}
+              getPlayerScore={groupChartData.getPlayerTaste}
+              title="Group Taste Scores So Far"
+            />
+            <GroupBarChart
+              rows={groupChartData.crushRows}
+              getGroupValue={(r) => r.groupAvg}
+              getPlayerScore={groupChartData.getPlayerCrush}
+              title="Group Crushability Scores So Far"
+            />
+          </section>
+        )}
       </div>
     </div>
   );
