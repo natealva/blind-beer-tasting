@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
+import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
 export default function SessionJoinPage() {
   const router = useRouter();
@@ -15,6 +16,10 @@ export default function SessionJoinPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
+  useEffect(() => {
+    setGifSrc(getRandomBeerGif());
+  }, []);
 
   useEffect(() => {
     const supabase = createSupabaseClient();
@@ -122,7 +127,7 @@ export default function SessionJoinPage() {
           ← Back
         </Link>
         <Image
-          src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+          src={gifSrc}
           alt="Beer cheers"
           width={120}
           height={120}

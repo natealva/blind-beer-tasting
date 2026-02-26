@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
+import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import type { BeerReveal, Player, Rating } from "@/types/database";
 
 type ResultsSection = "overall" | "taste" | "crush" | "guesses" | "individual";
@@ -41,6 +42,10 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [newBrewery, setNewBrewery] = useState("");
   const [newStyle, setNewStyle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
+  useEffect(() => {
+    setGifSrc(getRandomBeerGif());
+  }, []);
 
   useEffect(() => {
     const supabase = createSupabaseClient();
@@ -273,7 +278,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <Image
-            src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+            src={gifSrc}
             alt="Beer cheers"
             width={80}
             height={80}
@@ -456,7 +461,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                   <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by combined score (avg crush + avg taste) / 2</p>
                   <div className="mb-4">
                     <ResultsBarChart
-                      rows={resultsByBeer}
+                      rows={overallRanked}
                       getValue={(row) => row.combined}
                       barColor="bg-amber-500"
                     />
@@ -471,7 +476,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                   <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by average taste score</p>
                   <div className="mb-4">
                     <ResultsBarChart
-                      rows={resultsByBeer}
+                      rows={tasteRanked}
                       getValue={(row) => row.avgTaste}
                       barColor="bg-amber-700"
                     />
@@ -486,7 +491,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                   <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by average crushability score</p>
                   <div className="mb-4">
                     <ResultsBarChart
-                      rows={resultsByBeer}
+                      rows={crushRanked}
                       getValue={(row) => row.avgCrush}
                       barColor="bg-[var(--amber-gold)]"
                     />

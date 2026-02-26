@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
+import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import type { Rating, BeerReveal } from "@/types/database";
 
 function getPlayerFromStorage(code: string): { playerId: string; playerName: string } | null {
@@ -32,6 +33,10 @@ export default function SessionPlayPage() {
   const [completionDismissed, setCompletionDismissed] = useState(false);
   const [saving, setSaving] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
+  const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
+  useEffect(() => {
+    setGifSrc(getRandomBeerGif());
+  }, []);
 
   useEffect(() => {
     const player = getPlayerFromStorage(code);
@@ -219,7 +224,7 @@ export default function SessionPlayPage() {
           Home
         </Link>
         <Image
-          src="https://media.giphy.com/media/3oriO04qxVReM5rJEA/giphy.gif"
+          src={gifSrc}
           alt="Beer cheers"
           width={120}
           height={120}

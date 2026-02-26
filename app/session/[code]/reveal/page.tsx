@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
-import type { Rating } from "@/types/database";
+import type { Rating, BeerReveal } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
 const CHART_HEIGHT_PX = 200;
@@ -72,12 +72,13 @@ function UserVsGroupChart({
   );
 }
 
-export default function SessionDonePage() {
+export default function SessionRevealPage() {
   const params = useParams();
   const router = useRouter();
   const code = (params?.code as string) ?? "";
   const [playerName, setPlayerName] = useState("");
   const [ratings, setRatings] = useState<Rating[]>([]);
+  const [reveals, setReveals] = useState<BeerReveal[]>([]);
   const [allSessionRatings, setAllSessionRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
   const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
@@ -109,9 +110,11 @@ export default function SessionDonePage() {
         }
         Promise.all([
           supabase.from("ratings").select("*").eq("session_id", session.id).eq("player_id", playerId),
+          supabase.from("beer_reveals").select("*").eq("session_id", session.id).order("beer_number"),
           supabase.from("ratings").select("*").eq("session_id", session.id),
-        ]).then(([ratRes, allRes]) => {
+        ]).then(([ratRes, revRes, allRes]) => {
           setRatings(ratRes.data ?? []);
+          setReveals(revRes.data ?? []);
           setAllSessionRatings(allRes.data ?? []);
           setLoading(false);
         });
@@ -119,6 +122,7 @@ export default function SessionDonePage() {
   }, [code, router]);
 
   const sortedRatings = useMemo(() => [...ratings].sort((a, b) => a.beer_number - b.beer_number), [ratings]);
+  const revealByNumber = useMemo(() => new Map(reveals.map((r) => [r.beer_number, r])), [reveals]);
 
   const withScores = useMemo(
     () => sortedRatings.filter((r) => r.crushability != null && r.taste != null),
@@ -136,24 +140,33 @@ export default function SessionDonePage() {
       [...withScores]
         .map((r) => ({
           beerNumber: r.beer_number,
+          name: revealByNumber.get(r.beer_number)?.beer_name ?? null,
           combined: ((r.crushability ?? 0) + (r.taste ?? 0)) / 2,
         }))
         .sort((a, b) => b.combined - a.combined),
-    [withScores]
+    [withScores, revealByNumber]
   );
   const myTasteRanked = useMemo(
     () =>
       [...withScores]
-        .map((r) => ({ beerNumber: r.beer_number, taste: r.taste ?? 0 }))
+        .map((r) => ({
+          beerNumber: r.beer_number,
+          name: revealByNumber.get(r.beer_number)?.beer_name ?? null,
+          taste: r.taste ?? 0,
+        }))
         .sort((a, b) => b.taste - a.taste),
-    [withScores]
+    [withScores, revealByNumber]
   );
   const myCrushRanked = useMemo(
     () =>
       [...withScores]
-        .map((r) => ({ beerNumber: r.beer_number, crush: r.crushability ?? 0 }))
+        .map((r) => ({
+          beerNumber: r.beer_number,
+          name: revealByNumber.get(r.beer_number)?.beer_name ?? null,
+          crush: r.crushability ?? 0,
+        }))
         .sort((a, b) => b.crush - a.crush),
-    [withScores]
+    [withScores, revealByNumber]
   );
 
   const groupAvgByBeer = useMemo(() => {
@@ -205,7 +218,7 @@ export default function SessionDonePage() {
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
       <div className="w-full max-w-[480px] mx-auto space-y-8">
         <h1 className="text-3xl font-bold text-[var(--text-heading)] text-center">
-          🎉 You&apos;re done, {playerName}!
+          🍺 The Big Reveal!
         </h1>
         <Image
           src={gifSrc}
@@ -215,38 +228,48 @@ export default function SessionDonePage() {
           unoptimized
           className="mx-auto rounded-lg"
         />
+        <p className="text-[var(--text-muted)] text-center text-sm">
+          Here&apos;s your summary with the actual beer names, {playerName}.
+        </p>
+
         <div className="space-y-4">
           {sortedRatings.length === 0 ? (
             <p className="text-[var(--text-muted)] text-center">You haven&apos;t rated any beers yet.</p>
           ) : (
-            sortedRatings.map((r) => (
-              <div
-                key={r.id}
-                className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] overflow-hidden"
-              >
-                <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
-                  <span className="font-mono font-bold text-[var(--amber-gold)]">Beer #{r.beer_number}</span>
-                </div>
-                <div className="px-4 py-3 space-y-1 text-sm">
-                  <p className="text-[var(--text-body)]">
-                    Crushability: <span className="font-semibold text-[var(--amber-gold)]">{r.crushability ?? "—"}</span>/10
-                  </p>
-                  <p className="text-[var(--text-body)]">
-                    Taste: <span className="font-semibold text-[var(--amber-gold)]">{r.taste ?? "—"}</span>/10
-                  </p>
-                  {r.guess && (
-                    <p className="text-[var(--text-muted)]">
-                      Your guess: <span className="text-[var(--text-body)]">{r.guess}</span>
+            sortedRatings.map((r) => {
+              const rev = revealByNumber.get(r.beer_number);
+              return (
+                <div
+                  key={r.id}
+                  className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] overflow-hidden"
+                >
+                  <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
+                    <span className="font-mono font-bold text-[var(--amber-gold)]">Beer #{r.beer_number}</span>
+                    {rev?.beer_name && (
+                      <span className="ml-2 text-[var(--text-heading)] font-medium">{rev.beer_name}</span>
+                    )}
+                  </div>
+                  <div className="px-4 py-3 space-y-1 text-sm">
+                    <p className="text-[var(--text-body)]">
+                      Crushability: <span className="font-semibold text-[var(--amber-gold)]">{r.crushability ?? "—"}</span>/10
                     </p>
-                  )}
-                  {r.notes && (
-                    <p className="text-[var(--text-muted)]">
-                      Notes: <span className="text-[var(--text-body)]">{r.notes}</span>
+                    <p className="text-[var(--text-body)]">
+                      Taste: <span className="font-semibold text-[var(--amber-gold)]">{r.taste ?? "—"}</span>/10
                     </p>
-                  )}
+                    {r.guess && (
+                      <p className="text-[var(--text-muted)]">
+                        Your guess: <span className="text-[var(--text-body)]">{r.guess}</span>
+                      </p>
+                    )}
+                    {r.notes && (
+                      <p className="text-[var(--text-muted)]">
+                        Notes: <span className="text-[var(--text-body)]">{r.notes}</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -264,14 +287,14 @@ export default function SessionDonePage() {
         {withScores.length > 0 && (
           <>
             <section>
-              <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">My Rankings</h2>
+              <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">My Rankings (Revealed)</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3">
                   <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Overall Top Beers</h3>
                   <ul className="text-sm space-y-1">
                     {myOverallRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber} — {row.combined.toFixed(1)}/10
+                        #{idx + 1} Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.combined.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -281,7 +304,7 @@ export default function SessionDonePage() {
                   <ul className="text-sm space-y-1">
                     {myTasteRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber} — {row.taste.toFixed(1)}/10
+                        #{idx + 1} Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.taste.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -291,7 +314,7 @@ export default function SessionDonePage() {
                   <ul className="text-sm space-y-1">
                     {myCrushRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber} — {row.crush.toFixed(1)}/10
+                        #{idx + 1} Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.crush.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -319,29 +342,20 @@ export default function SessionDonePage() {
           </>
         )}
 
-        <p className="text-[var(--text-body)] text-center">
-          Now sit back and wait for the reveal! 🍺
-        </p>
-
-        <Link
-          href={`/session/${code}/play`}
-          className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors"
-        >
-          ← Keep Rating Beers
-        </Link>
-        <Link
-          href="/"
-          className="block w-full text-center rounded-xl bg-white border-2 border-[var(--border-amber)] hover:bg-amber-50 text-[var(--text-heading)] font-bold py-3.5 transition-colors"
-        >
-          Back to Home
-        </Link>
-
-        <Link
-          href={`/session/${code}/reveal`}
-          className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors border-2 border-amber-800"
-        >
-          🎉 Ready for the big reveal?
-        </Link>
+        <div className="flex flex-col gap-3">
+          <Link
+            href={`/session/${code}/play`}
+            className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors"
+          >
+            ← Keep Rating Beers
+          </Link>
+          <Link
+            href="/"
+            className="block w-full text-center rounded-xl bg-white border-2 border-[var(--border-amber)] hover:bg-amber-50 text-[var(--text-heading)] font-bold py-3.5 transition-colors"
+          >
+            Back to Home
+          </Link>
+        </div>
       </div>
     </div>
   );
