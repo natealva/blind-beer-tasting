@@ -6,7 +6,7 @@ import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import type { BeerReveal, Player, Rating } from "@/types/database";
-import { ScorecardsContent } from "../scorecards/page";
+import { ScorecardsContent } from "../scorecards/ScorecardsContent";
 
 type ResultsSection = "overall" | "taste" | "crush" | "guesses" | "individual";
 
