@@ -6,6 +6,7 @@ import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import type { BeerReveal, Player, Rating } from "@/types/database";
+import { ScorecardsContent } from "../scorecards/page";
 
 type ResultsSection = "overall" | "taste" | "crush" | "guesses" | "individual";
 
@@ -28,7 +29,7 @@ type Props = {
 export default function SessionAdminClient({ code, sessionId, sessionName, beerCount }: Props) {
   const [reveals, setReveals] = useState<BeerReveal[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [tab, setTab] = useState<"reveals" | "players" | "results">("reveals");
+  const [tab, setTab] = useState<"reveals" | "players" | "results" | "scorecards">("reveals");
   const [resultsSection, setResultsSection] = useState<ResultsSection>("overall");
   const [resultsReveals, setResultsReveals] = useState<BeerReveal[]>([]);
   const [resultsPlayers, setResultsPlayers] = useState<Player[]>([]);
@@ -46,6 +47,11 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [editingRating, setEditingRating] = useState<Rating | null>(null);
   const [editForm, setEditForm] = useState({ crushability: 0, taste: 0, guess: "", notes: "" });
   const [savingRating, setSavingRating] = useState(false);
+  const [scorecardsReveals, setScorecardsReveals] = useState<BeerReveal[]>([]);
+  const [scorecardsPlayers, setScorecardsPlayers] = useState<Player[]>([]);
+  const [scorecardsRatings, setScorecardsRatings] = useState<Rating[]>([]);
+  const [scorecardsLoading, setScorecardsLoading] = useState(false);
+  const [copyFeedback, setCopyFeedback] = useState(false);
   useEffect(() => {
     setGifSrc(getRandomBeerGif());
   }, []);
@@ -98,6 +104,24 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   useEffect(() => {
     if (tab === "players") fetchPlayersTabData();
   }, [tab, fetchPlayersTabData]);
+
+  const fetchScorecardsData = useCallback(async () => {
+    setScorecardsLoading(true);
+    const supabase = createSupabaseClient();
+    const [revRes, playRes, ratRes] = await Promise.all([
+      supabase.from("beer_reveals").select("*").eq("session_id", sessionId).order("beer_number"),
+      supabase.from("players").select("*").eq("session_id", sessionId).order("created_at", { ascending: true }),
+      supabase.from("ratings").select("*").eq("session_id", sessionId),
+    ]);
+    setScorecardsReveals(revRes.data ?? []);
+    setScorecardsPlayers(playRes.data ?? []);
+    setScorecardsRatings(ratRes.data ?? []);
+    setScorecardsLoading(false);
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (tab === "scorecards") fetchScorecardsData();
+  }, [tab, fetchScorecardsData]);
 
   async function addReveal(e: React.FormEvent) {
     e.preventDefault();
@@ -363,6 +387,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
         >
           Results
         </button>
+        <button
+          type="button"
+          onClick={() => setTab("scorecards")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "scorecards" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
+        >
+          Scorecards
+        </button>
       </div>
 
       {tab === "reveals" && (
@@ -435,6 +466,46 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {tab === "scorecards" && (
+        <div className="space-y-4">
+          <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-amber)] p-4">
+            <p className="text-[var(--text-muted)] text-sm mb-2">Share this link with participants after the reveal!</p>
+            <div className="flex flex-wrap items-center gap-2">
+              <code className="flex-1 min-w-0 text-sm text-[var(--text-heading)] bg-[var(--progress-track)] px-2 py-1.5 rounded break-all">
+                {typeof window !== "undefined" ? `${window.location.origin}/session/${code}/scorecards` : `/session/${code}/scorecards`}
+              </code>
+              <button
+                type="button"
+                onClick={() => {
+                  const url = typeof window !== "undefined" ? `${window.location.origin}/session/${code}/scorecards` : "";
+                  if (url && navigator.clipboard?.writeText) {
+                    navigator.clipboard.writeText(url).then(() => {
+                      setCopyFeedback(true);
+                      setTimeout(() => setCopyFeedback(false), 2000);
+                    });
+                  }
+                }}
+                className="shrink-0 rounded-lg bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-medium px-3 py-1.5 text-sm"
+              >
+                {copyFeedback ? "Copied!" : "Copy Link"}
+              </button>
+            </div>
+          </div>
+          {scorecardsLoading ? (
+            <p className="text-[var(--text-muted)]">Loading scorecards…</p>
+          ) : (
+            <div className="rounded-xl bg-[var(--background)] border border-[var(--border-amber)] p-4 max-h-[70vh] overflow-y-auto">
+              <ScorecardsContent
+                sessionName={sessionName}
+                reveals={scorecardsReveals}
+                players={scorecardsPlayers}
+                ratings={scorecardsRatings}
+              />
+            </div>
+          )}
         </div>
       )}
 
