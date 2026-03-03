@@ -14,6 +14,7 @@ export function getItemLabel(session: TastingSessionLike): string {
     Food: "Food",
     Cheese: "Cheese",
     Cocktails: "Cocktail",
+    Whiskey: "Whiskey",
   };
   return labels[type] || type;
 }
@@ -28,6 +29,7 @@ export function getItemEmoji(session: TastingSessionLike): string {
     Food: "🍕",
     Cheese: "🧀",
     Cocktails: "🫗",
+    Whiskey: "🥃",
   };
   return emojis[type] || "🍽️";
 }

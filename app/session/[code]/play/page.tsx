@@ -242,6 +242,14 @@ export default function SessionPlayPage() {
     setSaving(true);
     const supabase = createSupabaseClient();
     const { criteriaScores } = payload;
+    // eslint-disable-next-line no-console
+    console.log("[play] saving rating", {
+      sessionId,
+      playerId,
+      beerNumber: selectedBeerNumber,
+      criteriaScores,
+      payload,
+    });
     await supabase.from("ratings").upsert(
       {
         session_id: sessionId,
@@ -411,7 +419,7 @@ export default function SessionPlayPage() {
           }}
           className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
         >
-          <option value="">Select a beer number</option>
+          <option value="">Select a {itemLabel.toLowerCase()} number</option>
           {allBeerNumbers.map((n) => (
           <option key={n} value={n}>
             {itemLabel} #{n}
@@ -441,7 +449,7 @@ export default function SessionPlayPage() {
           <h2 className="text-lg font-bold text-[var(--text-heading)]">📊 Group Scores So Far</h2>
           {!showPickerCharts ? (
             <p className="text-[var(--text-muted)] text-sm text-center py-4 rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)]">
-              Your scores will appear here after you rate your first beer.
+              Your scores will appear here after you rate your first {itemLabel.toLowerCase()}.
             </p>
           ) : hasAnyGroupRatings ? (
             <>

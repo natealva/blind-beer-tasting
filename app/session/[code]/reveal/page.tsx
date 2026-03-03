@@ -9,7 +9,7 @@ import { createSupabaseClient } from "@/lib/supabase";
 import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
 import type { Rating, BeerReveal, Session } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
-import { getItemLabel, isBeer } from "@/lib/tastingUtils";
+import { getItemLabel, getItemEmoji, isBeer } from "@/lib/tastingUtils";
 
 const CHART_HEIGHT = 200;
 const BAR_WIDTH = 44;
@@ -146,6 +146,18 @@ export default function SessionRevealPage() {
 
   const sortedRatings = useMemo(() => [...ratings].sort((a, b) => a.beer_number - b.beer_number), [ratings]);
   const revealByNumber = useMemo(() => new Map(reveals.map((r) => [r.beer_number, r])), [reveals]);
+
+  const hasRatings = useMemo(
+    () =>
+      ratings.length > 0 &&
+      ratings.some(
+        (r) =>
+          (r.criteria_scores && Object.keys(r.criteria_scores).length > 0) ||
+          r.taste != null ||
+          r.crushability != null
+      ),
+    [ratings]
+  );
 
   const withScores = useMemo(
     () => sortedRatings.filter((r) => criteria.every((c) => getCriterionScore(r, c.id) != null)),
@@ -389,7 +401,7 @@ export default function SessionRevealPage() {
 
       <div className="w-full max-w-[480px] mx-auto space-y-8">
         <h1 className="text-3xl font-bold text-[var(--text-heading)] text-center">
-          🍺 The Big Reveal!
+          {getItemEmoji(session)} The Big Reveal!
         </h1>
         {session && isBeer(session) && (
           <Image
@@ -402,12 +414,16 @@ export default function SessionRevealPage() {
           />
         )}
         <p className="text-[var(--text-muted)] text-center text-sm">
-          Here&apos;s your summary with the actual beer names, {playerName}.
+          Here&apos;s your summary with the actual {itemLabel.toLowerCase()} names,{" "}
+          {playerName}.
         </p>
 
         <div className="space-y-4">
-          {sortedRatings.length === 0 ? (
-            <p className="text-[var(--text-muted)] text-center">You haven&apos;t rated any beers yet.</p>
+          {!hasRatings ? (
+            <p className="text-[var(--text-muted)] text-center">
+              You haven&apos;t rated any {itemLabel}
+              {itemLabel.endsWith("s") ? "" : "s"} yet.
+            </p>
           ) : (
             sortedRatings.map((r) => {
               const rev = revealByNumber.get(r.beer_number);

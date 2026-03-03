@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
-import { getItemLabel, isBeer } from "@/lib/tastingUtils";
+import { getItemLabel, getItemEmoji, isBeer } from "@/lib/tastingUtils";
 import type { Rating, Session } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
@@ -129,6 +129,18 @@ export default function SessionDonePage() {
 
   const sortedRatings = useMemo(() => [...ratings].sort((a, b) => a.beer_number - b.beer_number), [ratings]);
 
+  const hasRatings = useMemo(
+    () =>
+      ratings.length > 0 &&
+      ratings.some(
+        (r) =>
+          (r.criteria_scores && Object.keys(r.criteria_scores).length > 0) ||
+          r.taste != null ||
+          r.crushability != null
+      ),
+    [ratings]
+  );
+
   // criteria is stable for a given session; we intentionally omit it from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const withScores = useMemo(
@@ -220,8 +232,11 @@ export default function SessionDonePage() {
           />
         )}
         <div className="space-y-4">
-          {sortedRatings.length === 0 ? (
-            <p className="text-[var(--text-muted)] text-center">You haven&apos;t rated any beers yet.</p>
+          {!hasRatings ? (
+            <p className="text-[var(--text-muted)] text-center">
+              You haven&apos;t rated any {itemLabel}
+              {itemLabel.endsWith("s") ? "" : "s"} yet.
+            </p>
           ) : (
             sortedRatings.map((r) => (
               <div
@@ -320,14 +335,15 @@ export default function SessionDonePage() {
         )}
 
         <p className="text-[var(--text-body)] text-center">
-          Now sit back and wait for the reveal! 🍺
+          Now sit back and wait for the reveal! {getItemEmoji(session)}
         </p>
 
         <Link
           href={`/session/${code}/play`}
           className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors"
         >
-          ← Keep Rating Beers
+          ← Keep Rating {itemLabel}
+          {itemLabel.endsWith("s") ? "" : "s"}
         </Link>
         <Link
           href="/"

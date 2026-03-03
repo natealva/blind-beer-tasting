@@ -111,6 +111,7 @@ export default function CreatePage() {
                   <option value="Beer">🍺 Beer</option>
                   <option value="Wine">🍷 Wine</option>
                   <option value="Seltzer">🥂 Seltzer</option>
+                  <option value="Whiskey">🥃 Whiskey</option>
                   <option value="Steak">🥩 Steak</option>
                   <option value="Food">🍕 Food</option>
                   <option value="Cheese">🧀 Cheese</option>
@@ -128,7 +129,7 @@ export default function CreatePage() {
                 )}
               </div>
               <div>
-                <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">Number of beers</label>
+                <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">Number of samples</label>
                 <input
                   type="number"
                   min={1}

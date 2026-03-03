@@ -3,9 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
-import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
 export default function Home() {
   const router = useRouter();
@@ -16,10 +14,36 @@ export default function Home() {
   const [adminPassword, setAdminPassword] = useState("");
   const [adminError, setAdminError] = useState<string | null>(null);
   const [adminLoading, setAdminLoading] = useState(false);
-  const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
+
+  const words = [
+    "Beer",
+    "Wine",
+    "Whiskey",
+    "Seltzer",
+    "Steak",
+    "Taco",
+    "Cheese",
+    "Cocktail",
+    "Hot Sauce",
+    "Olive Oil",
+    "Coffee",
+    "Ramen",
+    "Pizza",
+    "Chocolate",
+  ];
+  const [wordIndex, setWordIndex] = useState(0);
+  const [fade, setFade] = useState(true);
+
   useEffect(() => {
-    setGifSrc(getRandomBeerGif());
-  }, []);
+    const interval = setInterval(() => {
+      setFade(false);
+      setTimeout(() => {
+        setWordIndex((prev) => (prev + 1) % words.length);
+        setFade(true);
+      }, 300);
+    }, 1800);
+    return () => clearInterval(interval);
+  }, [words.length]);
 
   async function handleJoin(e: React.FormEvent) {
     e.preventDefault();
@@ -95,17 +119,30 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
       <div className="w-full max-w-[480px] mx-auto">
-        <h1 className="text-4xl sm:text-5xl font-bold text-center mb-4 text-[var(--text-heading)]">
-          🍺 Blind Beer Tasting
+        <h1
+          style={{
+            fontSize: "2.5rem",
+            fontWeight: 800,
+            color: "#451a03",
+            textAlign: "center",
+            lineHeight: 1.3,
+            marginBottom: "1.5rem",
+          }}
+        >
+          Blind{" "}
+          <span
+            style={{
+              color: "#d97706",
+              transition: "opacity 0.3s ease",
+              opacity: fade ? 1 : 0,
+              display: "inline-block",
+              minWidth: "180px",
+            }}
+          >
+            {words[wordIndex]}
+          </span>{" "}
+          Tasting
         </h1>
-        <Image
-          src={gifSrc}
-          alt="Beer cheers"
-          width={120}
-          height={120}
-          unoptimized
-          className="mx-auto mb-6 rounded-lg"
-        />
         <form onSubmit={handleJoin} className="space-y-4">
           <input
             type="text"
