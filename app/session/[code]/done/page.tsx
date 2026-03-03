@@ -123,14 +123,18 @@ function UserVsGroupChart({
               <div
                 key={row.beerNumber}
                 style={{
-                  width: "32px",
-                  fontSize: "11px",
+                  width: "40px",
+                  fontSize: "10px",
                   textAlign: "center",
                   color: "#92400e",
+                  marginTop: "4px",
+                  wordBreak: "break-word",
+                  whiteSpace: "normal",
+                  lineHeight: "1.2",
                   flexShrink: 0,
                 }}
               >
-                Beer<br />#{row.beerNumber}
+                Beer #{row.beerNumber}
               </div>
             ))}
           </div>
@@ -393,6 +397,9 @@ export default function SessionDonePage() {
         >
           🎉 Ready for the big reveal?
         </Link>
+        <p style={{ fontSize: 13, color: "#92400e", textAlign: "center", marginTop: 6 }}>
+          ⚠️ This will lock all your previous answers
+        </p>
       </div>
     </div>
   );

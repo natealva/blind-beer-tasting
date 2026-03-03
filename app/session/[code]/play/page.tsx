@@ -125,14 +125,18 @@ function GroupBarChart({
               <div
                 key={row.beerNumber}
                 style={{
-                  width: "32px",
-                  fontSize: "11px",
+                  width: "40px",
+                  fontSize: "10px",
                   textAlign: "center",
                   color: "#92400e",
+                  marginTop: "4px",
+                  wordBreak: "break-word",
+                  whiteSpace: "normal",
+                  lineHeight: "1.2",
                   flexShrink: 0,
                 }}
               >
-                Beer<br />#{row.beerNumber}
+                Beer #{row.beerNumber}
               </div>
             ))}
           </div>

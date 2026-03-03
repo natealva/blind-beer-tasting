@@ -219,8 +219,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     getValue: (row: BeerStat) => number;
     barColor: string;
   }) {
-    const label = (row: BeerStat) =>
-      row.name ? (row.name.length > 10 ? row.name.slice(0, 10) + "…" : row.name) : `Beer ${row.beerNumber}`;
+    const labelText = (row: BeerStat) => row.name ?? `Beer #${row.beerNumber}`;
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }} className="-mx-1 pb-2 overflow-x-auto">
         <div style={{ position: "relative", height: "200px", width: "24px", flexShrink: 0 }}>
@@ -290,11 +289,19 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
             {rows.map((row) => (
               <div
                 key={row.beerNumber}
-                className="text-[10px] text-[var(--text-muted)] text-center truncate"
-                style={{ width: BAR_WIDTH, flexShrink: 0 }}
-                title={row.name ?? `Beer ${row.beerNumber}`}
+                style={{
+                  width: "40px",
+                  fontSize: "10px",
+                  textAlign: "center",
+                  color: "#92400e",
+                  marginTop: "4px",
+                  wordBreak: "break-word",
+                  whiteSpace: "normal",
+                  lineHeight: "1.2",
+                  flexShrink: 0,
+                }}
               >
-                {label(row)}
+                {labelText(row)}
               </div>
             ))}
           </div>

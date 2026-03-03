@@ -124,24 +124,23 @@ function UserVsGroupChart({
           <div style={{ display: "flex", gap: "8px", paddingLeft: "4px", marginTop: "4px" }}>
             {rows.map((row) => {
               const beerName = getBeerName?.(row.beerNumber) ?? null;
+              const label = beerName ?? `Beer #${row.beerNumber}`;
               return (
                 <div
                   key={row.beerNumber}
                   style={{
-                    width: "32px",
-                    fontSize: "11px",
+                    width: "40px",
+                    fontSize: "10px",
                     textAlign: "center",
                     color: "#92400e",
+                    marginTop: "4px",
+                    wordBreak: "break-word",
+                    whiteSpace: "normal",
+                    lineHeight: "1.2",
                     flexShrink: 0,
                   }}
                 >
-                  <span className="text-[var(--text-muted)]">Beer #{row.beerNumber}</span>
-                  {beerName && (
-                    <>
-                      <br />
-                      <span className="text-amber-700 font-semibold truncate block" title={beerName}>{beerName}</span>
-                    </>
-                  )}
+                  {label}
                 </div>
               );
             })}
@@ -194,10 +193,15 @@ export default function SessionRevealPage() {
           supabase.from("ratings").select("*").eq("session_id", session.id).eq("player_id", playerId),
           supabase.from("beer_reveals").select("*").eq("session_id", session.id).order("beer_number"),
           supabase.from("ratings").select("*").eq("session_id", session.id),
-        ]).then(([ratRes, revRes, allRes]) => {
+        ]).then(async ([ratRes, revRes, allRes]) => {
           setRatings(ratRes.data ?? []);
           setReveals(revRes.data ?? []);
           setAllSessionRatings(allRes.data ?? []);
+          await supabase
+            .from("ratings")
+            .update({ locked: true })
+            .eq("session_id", session.id)
+            .eq("player_id", playerId);
           setLoading(false);
         });
       });
@@ -347,7 +351,7 @@ export default function SessionRevealPage() {
   const handleDownload = useCallback(async () => {
     const element = document.getElementById("scorecard-download");
     if (!element) return;
-    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    const canvas = await html2canvas(element, { scale: 3, useCORS: true });
     const link = document.createElement("a");
     link.download = `${playerName}-beer-scorecard.png`;
     link.href = canvas.toDataURL("image/png");
@@ -371,7 +375,7 @@ export default function SessionRevealPage() {
           position: "fixed",
           left: "-9999px",
           top: 0,
-          width: "400px",
+          width: "480px",
           padding: "32px",
           background: "#fffbeb",
           fontFamily: "Nunito, sans-serif",
@@ -386,25 +390,25 @@ export default function SessionRevealPage() {
 
         <div style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY RANKINGS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "11px" }}>
-            <div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "10px", overflow: "hidden" }}>
+            <div style={{ overflow: "hidden" }}>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
               {myOverallRanked.map((row, idx) => (
-                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}/10</div>
               ))}
               {myOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div>
+            <div style={{ overflow: "hidden" }}>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Taste</div>
               {myTasteRanked.map((row, idx) => (
-                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.taste}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.taste}/10</div>
               ))}
               {myTasteRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div>
+            <div style={{ overflow: "hidden" }}>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Crushability</div>
               {myCrushRanked.map((row, idx) => (
-                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.crush}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.crush}/10</div>
               ))}
               {myCrushRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
@@ -413,9 +417,9 @@ export default function SessionRevealPage() {
 
         <div style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY GUESSES</div>
-          <div style={{ fontSize: "11px" }}>
+          <div style={{ fontSize: "10px" }}>
             {myGuessesForScorecard.map((g, idx) => (
-              <div key={idx}>{g.beerName} · Guessed: {g.guess} · {g.result}</div>
+              <div key={idx} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.beerName} · Guessed: {g.guess} · {g.result}</div>
             ))}
             {myGuessesForScorecard.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
           </div>
@@ -423,25 +427,25 @@ export default function SessionRevealPage() {
 
         <div style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>GROUP RANKINGS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "11px" }}>
-            <div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "10px", overflow: "hidden" }}>
+            <div style={{ overflow: "hidden" }}>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
               {groupOverallRanked.map((row, idx) => (
-                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}/10</div>
               ))}
               {groupOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div>
+            <div style={{ overflow: "hidden" }}>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Taste</div>
               {groupTasteRanked.map((row, idx) => (
-                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
               ))}
               {groupTasteRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div>
+            <div style={{ overflow: "hidden" }}>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Crushability</div>
               {groupCrushRanked.map((row, idx) => (
-                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
               ))}
               {groupCrushRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
@@ -532,7 +536,7 @@ export default function SessionRevealPage() {
                   <ul className="text-sm space-y-1">
                     {myOverallRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.combined.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -542,7 +546,7 @@ export default function SessionRevealPage() {
                   <ul className="text-sm space-y-1">
                     {myTasteRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        #{idx + 1} Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.taste.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.taste.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -552,7 +556,7 @@ export default function SessionRevealPage() {
                   <ul className="text-sm space-y-1">
                     {myCrushRanked.map((row, idx) => (
                       <li key={row.beerNumber}>
-                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""} — {row.crush.toFixed(1)}/10
+                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.crush.toFixed(1)}/10
                       </li>
                     ))}
                   </ul>
@@ -590,12 +594,6 @@ export default function SessionRevealPage() {
           >
             📱 Download Your Scorecard
           </button>
-          <Link
-            href={`/session/${code}/play`}
-            className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors"
-          >
-            ← Keep Rating Beers
-          </Link>
           <Link
             href="/"
             className="block w-full text-center rounded-xl bg-white border-2 border-[var(--border-amber)] hover:bg-amber-50 text-[var(--text-heading)] font-bold py-3.5 transition-colors"

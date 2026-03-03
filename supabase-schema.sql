@@ -40,9 +40,12 @@ create table ratings (
   taste integer check (taste between 1 and 10),
   guess text,
   notes text,
+  locked boolean default false,
   created_at timestamp with time zone default now(),
   unique(player_id, beer_number)
 );
+
+-- If ratings table already exists without locked: alter table ratings add column if not exists locked boolean default false;
 
 alter table sessions enable row level security;
 alter table beer_reveals enable row level security;

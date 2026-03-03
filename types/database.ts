@@ -35,6 +35,7 @@ export type Rating = {
   taste: number | null;
   guess: string | null;
   notes: string | null;
+  locked: boolean;
   created_at: string;
 };
 
