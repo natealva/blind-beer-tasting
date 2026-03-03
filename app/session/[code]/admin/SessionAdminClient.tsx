@@ -204,7 +204,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   ];
 
   const CHART_HEIGHT = 200;
-  const BAR_WIDTH = 32;
+  const BAR_WIDTH = 40;
 
   function pxFromScore(score: number): number {
     return Math.max(0, (score / 10) * CHART_HEIGHT);
@@ -285,19 +285,21 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: "8px", paddingLeft: "4px", marginTop: "4px" }}>
+          <div style={{ display: "flex", gap: "12px", paddingLeft: "4px", marginTop: "4px" }}>
             {rows.map((row) => (
               <div
                 key={row.beerNumber}
                 style={{
-                  width: "40px",
+                  width: "52px",
                   fontSize: "10px",
                   textAlign: "center",
                   color: "#92400e",
                   marginTop: "4px",
                   wordBreak: "break-word",
+                  overflowWrap: "break-word",
                   whiteSpace: "normal",
                   lineHeight: "1.2",
+                  hyphens: "none",
                   flexShrink: 0,
                 }}
               >

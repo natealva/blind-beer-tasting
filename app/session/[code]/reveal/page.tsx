@@ -10,7 +10,7 @@ import type { Rating, BeerReveal } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
 const CHART_HEIGHT = 200;
-const BAR_WIDTH = 32;
+const BAR_WIDTH = 40;
 
 function pxFromScore(score: number): number {
   return Math.max(0, (score / 10) * CHART_HEIGHT);
@@ -59,10 +59,11 @@ function UserVsGroupChart({
               height: "200px",
               display: "flex",
               alignItems: "flex-end",
-              gap: "8px",
+              gap: "12px",
               borderLeft: "1px solid #d97706",
               borderBottom: "1px solid #d97706",
               paddingLeft: "4px",
+              overflowX: "auto",
             }}
           >
             {[0, 40, 80, 120, 160].map((topPx) => (
@@ -121,7 +122,7 @@ function UserVsGroupChart({
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: "8px", paddingLeft: "4px", marginTop: "4px" }}>
+          <div style={{ display: "flex", gap: "12px", paddingLeft: "4px", marginTop: "4px" }}>
             {rows.map((row) => {
               const beerName = getBeerName?.(row.beerNumber) ?? null;
               const label = beerName ?? `Beer #${row.beerNumber}`;
@@ -129,14 +130,16 @@ function UserVsGroupChart({
                 <div
                   key={row.beerNumber}
                   style={{
-                    width: "40px",
+                    width: "52px",
                     fontSize: "10px",
                     textAlign: "center",
                     color: "#92400e",
                     marginTop: "4px",
                     wordBreak: "break-word",
+                    overflowWrap: "break-word",
                     whiteSpace: "normal",
                     lineHeight: "1.2",
+                    hyphens: "none",
                     flexShrink: 0,
                   }}
                 >
@@ -375,7 +378,7 @@ export default function SessionRevealPage() {
           position: "fixed",
           left: "-9999px",
           top: 0,
-          width: "480px",
+          width: "560px",
           padding: "32px",
           background: "#fffbeb",
           fontFamily: "Nunito, sans-serif",
@@ -390,25 +393,25 @@ export default function SessionRevealPage() {
 
         <div style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY RANKINGS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "10px", overflow: "hidden" }}>
-            <div style={{ overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", fontSize: "9px", lineHeight: "1.4" }}>
+            <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
               {myOverallRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}/10</div>
               ))}
               {myOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div style={{ overflow: "hidden" }}>
+            <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Taste</div>
               {myTasteRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.taste}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.taste}/10</div>
               ))}
               {myTasteRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div style={{ overflow: "hidden" }}>
+            <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Crushability</div>
               {myCrushRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.crush}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.crush}/10</div>
               ))}
               {myCrushRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
@@ -417,9 +420,9 @@ export default function SessionRevealPage() {
 
         <div style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY GUESSES</div>
-          <div style={{ fontSize: "10px" }}>
+          <div style={{ fontSize: "9px", lineHeight: "1.4" }}>
             {myGuessesForScorecard.map((g, idx) => (
-              <div key={idx} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{g.beerName} · Guessed: {g.guess} · {g.result}</div>
+              <div key={idx} style={{ whiteSpace: "normal" }}>{g.beerName} · Guessed: {g.guess} · {g.result}</div>
             ))}
             {myGuessesForScorecard.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
           </div>
@@ -427,25 +430,25 @@ export default function SessionRevealPage() {
 
         <div style={{ marginBottom: "20px" }}>
           <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>GROUP RANKINGS</div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "10px", overflow: "hidden" }}>
-            <div style={{ overflow: "hidden" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "12px", fontSize: "9px", lineHeight: "1.4" }}>
+            <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
               {groupOverallRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}/10</div>
               ))}
               {groupOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div style={{ overflow: "hidden" }}>
+            <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Taste</div>
               {groupTasteRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
               ))}
               {groupTasteRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
-            <div style={{ overflow: "hidden" }}>
+            <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Crushability</div>
               {groupCrushRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
               ))}
               {groupCrushRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>

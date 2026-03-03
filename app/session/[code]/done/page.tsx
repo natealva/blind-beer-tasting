@@ -9,7 +9,7 @@ import type { Rating } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
 const CHART_HEIGHT = 200;
-const BAR_WIDTH = 32;
+const BAR_WIDTH = 40;
 
 function pxFromScore(score: number): number {
   return Math.max(0, (score / 10) * CHART_HEIGHT);
@@ -56,10 +56,11 @@ function UserVsGroupChart({
               height: "200px",
               display: "flex",
               alignItems: "flex-end",
-              gap: "8px",
+              gap: "12px",
               borderLeft: "1px solid #d97706",
               borderBottom: "1px solid #d97706",
               paddingLeft: "4px",
+              overflowX: "auto",
             }}
           >
             {[0, 40, 80, 120, 160].map((topPx) => (
@@ -118,19 +119,21 @@ function UserVsGroupChart({
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: "8px", paddingLeft: "4px", marginTop: "4px" }}>
+          <div style={{ display: "flex", gap: "12px", paddingLeft: "4px", marginTop: "4px" }}>
             {rows.map((row) => (
               <div
                 key={row.beerNumber}
                 style={{
-                  width: "40px",
+                  width: "52px",
                   fontSize: "10px",
                   textAlign: "center",
                   color: "#92400e",
                   marginTop: "4px",
                   wordBreak: "break-word",
+                  overflowWrap: "break-word",
                   whiteSpace: "normal",
                   lineHeight: "1.2",
+                  hyphens: "none",
                   flexShrink: 0,
                 }}
               >

@@ -9,7 +9,7 @@ import { getRandomBeerGif } from "@/lib/beerGifs";
 import type { Rating, BeerReveal } from "@/types/database";
 
 const CHART_HEIGHT = 200;
-const BAR_WIDTH = 32;
+const BAR_WIDTH = 40;
 
 function pxFromScore(score: number): number {
   return Math.max(0, (score / 10) * CHART_HEIGHT);
@@ -120,19 +120,21 @@ function GroupBarChart({
               );
             })}
           </div>
-          <div style={{ display: "flex", gap: "8px", paddingLeft: "4px", marginTop: "4px" }}>
+          <div style={{ display: "flex", gap: "12px", paddingLeft: "4px", marginTop: "4px" }}>
             {rows.map((row) => (
               <div
                 key={row.beerNumber}
                 style={{
-                  width: "40px",
+                  width: "52px",
                   fontSize: "10px",
                   textAlign: "center",
                   color: "#92400e",
                   marginTop: "4px",
                   wordBreak: "break-word",
+                  overflowWrap: "break-word",
                   whiteSpace: "normal",
                   lineHeight: "1.2",
+                  hyphens: "none",
                   flexShrink: 0,
                 }}
               >
@@ -348,6 +350,28 @@ export default function SessionPlayPage() {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
         <p className="text-amber-600">Session not found.</p>
+      </div>
+    );
+  }
+
+  const isLocked = ratings.some((r) => r.locked === true);
+  if (isLocked) {
+    return (
+      <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center justify-center" style={{ textAlign: "center", padding: "40px 20px" }}>
+        <div style={{ fontSize: "48px" }}>🔒</div>
+        <h2 style={{ fontSize: "24px", fontWeight: 800, color: "#451a03", margin: "16px 0 8px" }}>
+          Your answers are locked
+        </h2>
+        <p style={{ color: "#92400e", marginBottom: "24px" }}>
+          You&apos;ve already completed the reveal. Your scores can&apos;t be changed.
+        </p>
+        <Link
+          href={`/session/${code}/reveal`}
+          className="block w-full max-w-[320px] mx-auto rounded-xl font-bold py-3.5 text-center transition-colors"
+          style={{ background: "#f59e0b", color: "#451a03", padding: "14px 24px", borderRadius: "12px", fontWeight: 700, textDecoration: "none" }}
+        >
+          View My Results →
+        </Link>
       </div>
     );
   }
