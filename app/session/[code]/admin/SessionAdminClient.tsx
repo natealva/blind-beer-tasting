@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
-import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
+import { getCriteria, getCriterionScore } from "@/lib/criteriaUtils";
 import type { BeerReveal, Player, Rating } from "@/types/database";
 import type { Criterion } from "@/lib/types";
 import { ScorecardsContent } from "../scorecards/ScorecardsContent";
@@ -52,7 +52,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [savingCriteria, setSavingCriteria] = useState(false);
   const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
   const [editingRating, setEditingRating] = useState<Rating | null>(null);
-  const [editForm, setEditForm] = useState<{ criteriaScores: Record<string, number>; guess: string; notes: string }>({ criteriaScores: {}, guess: "", notes: "" });
+  const [editForm, setEditForm] = useState({ crushability: 0, taste: 0, guess: "", notes: "" });
   const [savingRating, setSavingRating] = useState(false);
   const [scorecardsReveals, setScorecardsReveals] = useState<BeerReveal[]>([]);
   const [scorecardsPlayers, setScorecardsPlayers] = useState<Player[]>([]);
@@ -221,25 +221,36 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     const out: BeerStat[] = [];
     for (let n = 1; n <= beerCount; n++) {
       const beerRatings = resultsRatings.filter((r) => r.beer_number === n);
-      const withScores = beerRatings.filter((r) => r.crushability != null && r.taste != null);
-      const avgCrush = withScores.length ? withScores.reduce((s, r) => s + (r.crushability ?? 0), 0) / withScores.length : 0;
-      const avgTaste = withScores.length ? withScores.reduce((s, r) => s + (r.taste ?? 0), 0) / withScores.length : 0;
+      const avgByCriterion: Record<string, number> = {};
+      for (const c of criteria) {
+        const scores = beerRatings.map((r) => getCriterionScore(r, c.id)).filter((s): s is number => s != null);
+        avgByCriterion[c.id] = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+      }
+      const combined =
+        criteria.length > 0
+          ? criteria.reduce((sum, c) => sum + avgByCriterion[c.id], 0) / criteria.length
+          : 0;
       const rev = resultsReveals.find((r) => r.beer_number === n);
       out.push({
         beerNumber: n,
         name: rev?.beer_name ?? null,
         ratings: beerRatings,
-        avgCrush,
-        avgTaste,
-        combined: (avgCrush + avgTaste) / 2,
+        avgByCriterion,
+        combined,
       });
     }
     return out;
-  }, [beerCount, resultsRatings, resultsReveals]);
+  }, [beerCount, resultsRatings, resultsReveals, criteria]);
 
   const overallRanked = useMemo(() => [...resultsByBeer].sort((a, b) => b.combined - a.combined), [resultsByBeer]);
-  const tasteRanked = useMemo(() => [...resultsByBeer].sort((a, b) => b.avgTaste - a.avgTaste), [resultsByBeer]);
-  const crushRanked = useMemo(() => [...resultsByBeer].sort((a, b) => b.avgCrush - a.avgCrush), [resultsByBeer]);
+  const rankedByCriterion = useMemo(
+    () =>
+      criteria.map((c) => ({
+        criterion: c,
+        ranked: [...resultsByBeer].sort((a, b) => (b.avgByCriterion[c.id] ?? 0) - (a.avgByCriterion[c.id] ?? 0)),
+      })),
+    [resultsByBeer, criteria]
+  );
 
   const revealByNumber = useMemo(() => new Map(resultsReveals.map((r) => [r.beer_number, r])), [resultsReveals]);
   const guessAccuracy = useMemo(() => {
@@ -716,7 +727,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                 <section>
                   <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Individual ratings by beer</h2>
                   <div className="space-y-6">
-                    {resultsByBeer.map(({ beerNumber, name, ratings: beerRatings, avgCrush, avgTaste }) => {
+                    {resultsByBeer.map(({ beerNumber, name, ratings: beerRatings, avgByCriterion }) => {
                       const playerMap = new Map(resultsPlayers.map((p) => [p.id, p]));
                       return (
                         <div key={beerNumber} className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-amber)] overflow-hidden">
@@ -724,7 +735,12 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                             <span className="font-mono font-bold text-[var(--amber-gold)]">Beer #{beerNumber}</span>
                             {name && <span className="text-[var(--text-heading)]">{name}</span>}
                             <span className="text-[var(--text-muted)] text-sm">
-                              Avg crush: {beerRatings.length ? avgCrush.toFixed(1) : "—"} · Avg taste: {beerRatings.length ? avgTaste.toFixed(1) : "—"} · {beerRatings.length} rating{beerRatings.length !== 1 ? "s" : ""}
+                              {criteria.map((c, i) => (
+                                <span key={c.id}>
+                                  {i > 0 ? " · " : ""}
+                                  Avg {c.label}: {beerRatings.length ? (avgByCriterion[c.id] ?? 0).toFixed(1) : "—"}
+                                </span>
+                              ))} · {beerRatings.length} rating{beerRatings.length !== 1 ? "s" : ""}
                             </span>
                           </div>
                           <div className="overflow-x-auto">

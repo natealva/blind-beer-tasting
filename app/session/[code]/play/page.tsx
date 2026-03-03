@@ -103,6 +103,7 @@ export default function SessionPlayPage() {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [beerCount, setBeerCount] = useState(0);
+  const [criteria, setCriteria] = useState(getCriteria(null));
   const [beerReveals, setBeerReveals] = useState<BeerReveal[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
@@ -201,7 +202,7 @@ export default function SessionPlayPage() {
       };
       return { criterion: c, rows, getPlayerScore };
     });
-  }, [criteria, allSessionRatings, ratings, playerRatedBeerNumbers]);
+  }, [allSessionRatings, ratings, playerRatedBeerNumbers]);
 
   const hasAnyGroupRatings = allSessionRatings.length > 0;
   const showPickerCharts = ratings.length > 0;

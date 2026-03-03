@@ -78,6 +78,7 @@ export default function SessionDonePage() {
   const router = useRouter();
   const code = (params?.code as string) ?? "";
   const [playerName, setPlayerName] = useState("");
+  const [criteria, setCriteria] = useState(getCriteria(null));
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [allSessionRatings, setAllSessionRatings] = useState<Rating[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +125,7 @@ export default function SessionDonePage() {
 
   const withScores = useMemo(
     () => sortedRatings.filter((r) => criteria.every((c) => getCriterionScore(r, c.id) != null)),
-    [sortedRatings, criteria]
+    [sortedRatings]
   );
 
   const myOverallRanked = useMemo(
@@ -132,7 +133,7 @@ export default function SessionDonePage() {
       [...withScores]
         .map((r) => ({ beerNumber: r.beer_number, combined: getOverallScore(r, criteria) }))
         .sort((a, b) => b.combined - a.combined),
-    [withScores, criteria]
+    [withScores]
   );
 
   const myRankedByCriterion = useMemo(
@@ -143,7 +144,7 @@ export default function SessionDonePage() {
           .map((r) => ({ beerNumber: r.beer_number, score: getCriterionScore(r, c.id) ?? 0 }))
           .sort((a, b) => b.score - a.score),
       })),
-    [withScores, criteria]
+    [withScores]
   );
 
   const groupAvgByBeer = useMemo(() => {
@@ -167,7 +168,7 @@ export default function SessionDonePage() {
       const byBeer = byCriterionAndBeer.get(criterionId);
       return byBeer ? avg(byBeer.get(beerNumber) ?? []) : 0;
     };
-  }, [allSessionRatings, criteria]);
+  }, [allSessionRatings]);
 
   const chartRowsByCriterion = useMemo(
     () =>
@@ -177,7 +178,7 @@ export default function SessionDonePage() {
           .map((r) => ({ beerNumber: r.beer_number, userScore: getCriterionScore(r, c.id) ?? 0 }))
           .sort((a, b) => a.beerNumber - b.beerNumber),
       })),
-    [withScores, criteria]
+    [withScores]
   );
 
   if (loading) {
