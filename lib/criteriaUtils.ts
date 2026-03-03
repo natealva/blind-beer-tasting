@@ -13,14 +13,24 @@ export function getCriteria(session: { criteria?: unknown } | null): Criterion[]
   return DEFAULT_CRITERIA;
 }
 
-/** Get a score from a rating for a given criterion id. Handles criteria_scores jsonb and legacy taste/crushability columns. */
-export function getCriterionScore(rating: Record<string, unknown> | null, criterionId: string): number | null {
+/**
+ * Get a score from a rating for a given criterion id.
+ * Tries criteria_scores jsonb first, then falls back to direct taste/crushability columns.
+ * Use this for every score read so both new and legacy data work.
+ */
+export function getScore(rating: Record<string, unknown> | null, criterionId: string): number | null {
   if (!rating) return null;
-  const scores = rating.criteria_scores as Record<string, number> | undefined;
-  if (scores && scores[criterionId] != null) return scores[criterionId];
-  if (criterionId === "taste") return (rating.taste as number | null) ?? null;
-  if (criterionId === "crushability") return (rating.crushability as number | null) ?? null;
+  if (rating.criteria_scores != null && typeof rating.criteria_scores === "object" && (rating.criteria_scores as Record<string, unknown>)[criterionId] != null) {
+    return Number((rating.criteria_scores as Record<string, unknown>)[criterionId]);
+  }
+  if (criterionId === "taste" && rating.taste != null) return Number(rating.taste);
+  if (criterionId === "crushability" && rating.crushability != null) return Number(rating.crushability);
   return null;
+}
+
+/** Alias for getScore for backward compatibility. */
+export function getCriterionScore(rating: Record<string, unknown> | null, criterionId: string): number | null {
+  return getScore(rating, criterionId);
 }
 
 /** Calculate overall score as average of all criteria */

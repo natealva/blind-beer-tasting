@@ -149,13 +149,13 @@ export default function SessionRevealPage() {
 
   const hasRatings = useMemo(
     () =>
+      ratings &&
       ratings.length > 0 &&
-      ratings.some(
-        (r) =>
-          (r.criteria_scores && Object.keys(r.criteria_scores).length > 0) ||
-          r.taste != null ||
-          r.crushability != null
-      ),
+      ratings.some((r: Record<string, unknown>) => {
+        if (r.criteria_scores && typeof r.criteria_scores === "object" && Object.keys(r.criteria_scores).length > 0) return true;
+        if (r.taste != null || r.crushability != null) return true;
+        return false;
+      }),
     [ratings]
   );
 

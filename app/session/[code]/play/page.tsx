@@ -243,31 +243,42 @@ export default function SessionPlayPage() {
     notes: string | null;
   }) {
     if (!sessionId || !playerId || selectedBeerNumber == null) return;
+    const { criteriaScores, guess, notes } = payload;
+    // eslint-disable-next-line no-console
+    console.log("[play] criteria loaded for session:", criteria);
+    const allFilled = criteria.every((c) => criteriaScores[c.id] != null);
+    if (!allFilled) {
+      setInlineError("Please rate all criteria before saving.");
+      return;
+    }
     setInlineError(null);
     setSaving(true);
     const supabase = createSupabaseClient();
-    const { criteriaScores } = payload;
+    const row = {
+      session_id: sessionId,
+      player_id: playerId,
+      beer_number: selectedBeerNumber,
+      criteria_scores: criteriaScores,
+      taste: criteriaScores["taste"] ?? null,
+      crushability: criteriaScores["crushability"] ?? null,
+      guess: guess || null,
+      notes: notes || null,
+    };
     // eslint-disable-next-line no-console
-    console.log("[play] saving rating", {
-      sessionId,
-      playerId,
-      beerNumber: selectedBeerNumber,
-      criteriaScores,
-      payload,
+    console.log("Saving rating with data:", {
+      session_id: sessionId,
+      player_id: playerId,
+      beer_number: selectedBeerNumber,
+      criteria_scores: criteriaScores,
+      taste: criteriaScores["taste"] ?? null,
+      crushability: criteriaScores["crushability"] ?? null,
     });
-    await supabase.from("ratings").upsert(
-      {
-        session_id: sessionId,
-        player_id: playerId,
-        beer_number: selectedBeerNumber,
-        criteria_scores: criteriaScores,
-        taste: criteriaScores["taste"] ?? null,
-        crushability: criteriaScores["crushability"] ?? null,
-        guess: payload.guess || null,
-        notes: payload.notes || null,
-      },
-      { onConflict: "player_id,beer_number" }
-    );
+    const { data: savedData, error: saveError } = await supabase
+      .from("ratings")
+      .upsert(row, { onConflict: "player_id,beer_number" })
+      .select();
+    // eslint-disable-next-line no-console
+    console.log("Save result:", savedData, "Error:", saveError);
     const { data: updated } = await supabase
       .from("ratings")
       .select("*")
