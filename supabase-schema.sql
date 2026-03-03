@@ -6,8 +6,13 @@ create table sessions (
   beer_count integer not null default 13,
   admin_password text not null,
   is_active boolean default true,
+  criteria jsonb default '[{"id":"taste","label":"Taste","emoji":"👅"},{"id":"crushability","label":"Crushability","emoji":"🍺"}]'::jsonb,
   created_at timestamp with time zone default now()
 );
+
+-- For existing DBs, run in Supabase SQL Editor:
+-- ALTER TABLE sessions ADD COLUMN IF NOT EXISTS criteria jsonb DEFAULT '[{"id":"taste","label":"Taste","emoji":"👅"},{"id":"crushability","label":"Crushability","emoji":"🍺"}]'::jsonb;
+-- ALTER TABLE ratings ADD COLUMN IF NOT EXISTS criteria_scores jsonb DEFAULT '{}'::jsonb;
 
 -- Beer reveals (admin only - maps number to actual beer name)
 create table beer_reveals (
@@ -41,11 +46,13 @@ create table ratings (
   guess text,
   notes text,
   locked boolean default false,
+  criteria_scores jsonb default '{}'::jsonb,
   created_at timestamp with time zone default now(),
   unique(player_id, beer_number)
 );
 
 -- If ratings table already exists without locked: alter table ratings add column if not exists locked boolean default false;
+-- If ratings already exists: ALTER TABLE ratings ADD COLUMN IF NOT EXISTS criteria_scores jsonb DEFAULT '{}'::jsonb;
 
 alter table sessions enable row level security;
 alter table beer_reveals enable row level security;

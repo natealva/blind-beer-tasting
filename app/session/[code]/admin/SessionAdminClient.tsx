@@ -6,7 +6,13 @@ import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import type { BeerReveal, Player, Rating } from "@/types/database";
+import type { Criterion } from "@/lib/types";
 import { ScorecardsContent } from "../scorecards/ScorecardsContent";
+
+const DEFAULT_CRITERIA: Criterion[] = [
+  { id: "taste", label: "Taste", emoji: "👅" },
+  { id: "crushability", label: "Crushability", emoji: "🍺" },
+];
 
 type ResultsSection = "overall" | "taste" | "crush" | "guesses" | "individual";
 
@@ -29,7 +35,7 @@ type Props = {
 export default function SessionAdminClient({ code, sessionId, sessionName, beerCount }: Props) {
   const [reveals, setReveals] = useState<BeerReveal[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
-  const [tab, setTab] = useState<"reveals" | "players" | "results" | "scorecards">("reveals");
+  const [tab, setTab] = useState<"reveals" | "criteria" | "players" | "results" | "scorecards">("reveals");
   const [resultsSection, setResultsSection] = useState<ResultsSection>("overall");
   const [resultsReveals, setResultsReveals] = useState<BeerReveal[]>([]);
   const [resultsPlayers, setResultsPlayers] = useState<Player[]>([]);
@@ -40,9 +46,10 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [playersTabLoading, setPlayersTabLoading] = useState(false);
   const [newBeerNumber, setNewBeerNumber] = useState(1);
   const [newBeerName, setNewBeerName] = useState("");
-  const [newBrewery, setNewBrewery] = useState("");
-  const [newStyle, setNewStyle] = useState("");
   const [saving, setSaving] = useState(false);
+  const [criteria, setCriteria] = useState<Criterion[]>(DEFAULT_CRITERIA);
+  const [criteriaSaved, setCriteriaSaved] = useState(false);
+  const [savingCriteria, setSavingCriteria] = useState(false);
   const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
   const [editingRating, setEditingRating] = useState<Rating | null>(null);
   const [editForm, setEditForm] = useState({ crushability: 0, taste: 0, guess: "", notes: "" });
@@ -69,6 +76,15 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       .select("*")
       .eq("session_id", sessionId)
       .then(({ data }) => setPlayers(data ?? []));
+    supabase
+      .from("sessions")
+      .select("criteria")
+      .eq("id", sessionId)
+      .single()
+      .then(({ data }) => {
+        const c = data?.criteria as Criterion[] | null | undefined;
+        if (Array.isArray(c) && c.length >= 2) setCriteria(c);
+      });
   }, [sessionId]);
 
   const fetchResultsData = useCallback(async () => {
@@ -134,8 +150,6 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
         session_id: sessionId,
         beer_number: num,
         beer_name: newBeerName.trim(),
-        brewery: newBrewery.trim() || null,
-        style: newStyle.trim() || null,
       },
       { onConflict: "session_id,beer_number" }
     );
@@ -146,10 +160,55 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       .order("beer_number");
     setReveals(data ?? []);
     setNewBeerName("");
-    setNewBrewery("");
-    setNewStyle("");
     setNewBeerNumber(num + 1);
     setSaving(false);
+  }
+
+  function labelToId(label: string): string {
+    return label
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "_")
+      .replace(/[^a-z0-9_]/g, "") || "criterion";
+  }
+
+  function updateCriterion(index: number, updates: Partial<Criterion>) {
+    setCriteria((prev) => {
+      const next = [...prev];
+      const current = next[index];
+      if (!current) return prev;
+      const merged = { ...current, ...updates };
+      if (updates.label !== undefined) merged.id = labelToId(updates.label) || current.id;
+      next[index] = merged;
+      return next;
+    });
+  }
+
+  function addCriterion() {
+    if (criteria.length >= 5) return;
+    setCriteria((prev) => [...prev, { id: "new", label: "", emoji: "" }]);
+  }
+
+  function removeCriterion(index: number) {
+    if (criteria.length <= 2) return;
+    setCriteria((prev) => prev.filter((_, i) => i !== index));
+  }
+
+  async function saveCriteria() {
+    const invalid = criteria.some((c) => !c.label.trim());
+    if (invalid) return;
+    setSavingCriteria(true);
+    setCriteriaSaved(false);
+    const toSave = criteria.map((c) => ({
+      id: c.id && c.id !== "new" ? c.id : labelToId(c.label) || "criterion",
+      label: c.label.trim(),
+      emoji: (c.emoji.trim() || "•").slice(0, 1),
+    }));
+    const supabase = createSupabaseClient();
+    await supabase.from("sessions").update({ criteria: toSave }).eq("id", sessionId);
+    setCriteria(toSave);
+    setCriteriaSaved(true);
+    setSavingCriteria(false);
   }
 
   async function deleteReveal(id: string) {
@@ -331,6 +390,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
         </button>
         <button
           type="button"
+          onClick={() => setTab("criteria")}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "criteria" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
+        >
+          Criteria
+        </button>
+        <button
+          type="button"
           onClick={() => setTab("players")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "players" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
         >
@@ -377,26 +443,6 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                 className="w-full rounded bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-2 py-1.5 text-sm"
               />
             </div>
-            <div className="min-w-[100px]">
-              <label className="block text-[var(--text-muted)] text-xs mb-0.5">Brewery</label>
-              <input
-                type="text"
-                value={newBrewery}
-                onChange={(e) => setNewBrewery(e.target.value)}
-                placeholder="Optional"
-                className="w-full rounded bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-2 py-1.5 text-sm"
-              />
-            </div>
-            <div className="min-w-[80px]">
-              <label className="block text-[var(--text-muted)] text-xs mb-0.5">Style</label>
-              <input
-                type="text"
-                value={newStyle}
-                onChange={(e) => setNewStyle(e.target.value)}
-                placeholder="e.g. IPA"
-                className="w-full rounded bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-2 py-1.5 text-sm"
-              />
-            </div>
             <button
               type="submit"
               disabled={saving || !newBeerName.trim()}
@@ -410,8 +456,6 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               <li key={r.id} className="flex items-center gap-2 flex-wrap rounded-lg bg-[var(--bg-card)] border border-[var(--border-amber)] px-3 py-2">
                 <span className="font-mono text-[var(--amber-gold)] w-6">#{r.beer_number}</span>
                 <span className="font-medium text-[var(--text-heading)]">{r.beer_name}</span>
-                {r.brewery && <span className="text-[var(--text-muted)] text-sm">{r.brewery}</span>}
-                {r.style && <span className="text-amber-600 text-sm">{r.style}</span>}
                 <button
                   type="button"
                   onClick={() => deleteReveal(r.id)}
@@ -422,6 +466,68 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               </li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {tab === "criteria" && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-bold text-[var(--text-heading)]">Rating Criteria</h2>
+          <p className="text-[var(--text-muted)] text-sm">Customize what players rate each beer on. Default is Taste and Crushability.</p>
+          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-amber-800 text-sm">
+            ⚠️ Change criteria before players start rating for best results
+          </div>
+          <div className="space-y-2">
+            {criteria.map((c, index) => (
+              <div key={index} className="flex items-center gap-2 flex-wrap">
+                <input
+                  type="text"
+                  value={c.emoji}
+                  onChange={(e) => updateCriterion(index, { emoji: e.target.value })}
+                  placeholder="👅"
+                  maxLength={1}
+                  className="rounded bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-2 py-1.5 text-xl text-center w-12"
+                  style={{ width: "48px" }}
+                />
+                <input
+                  type="text"
+                  value={c.label}
+                  onChange={(e) => updateCriterion(index, { label: e.target.value })}
+                  placeholder="e.g. Taste"
+                  className="flex-1 min-w-[120px] rounded bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-2 py-1.5 text-sm"
+                />
+                {criteria.length > 2 && (
+                  <button
+                    type="button"
+                    onClick={() => removeCriterion(index)}
+                    className="text-red-600 hover:text-red-700 p-1.5 rounded"
+                    title="Remove"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          {criteria.length < 5 && (
+            <button
+              type="button"
+              onClick={addCriterion}
+              className="rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] font-medium px-3 py-1.5 text-sm hover:bg-amber-50"
+            >
+              ＋ Add Criterion
+            </button>
+          )}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={saveCriteria}
+              disabled={savingCriteria || criteria.some((c) => !c.label.trim())}
+              className="rounded-lg bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] disabled:opacity-50 text-[var(--button-text)] font-medium px-3 py-1.5 text-sm"
+            >
+              Save Criteria
+            </button>
+            {criteriaSaved && <span className="text-green-700 text-sm font-medium">Criteria saved!</span>}
+          </div>
         </div>
       )}
 

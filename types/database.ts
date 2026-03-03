@@ -1,3 +1,5 @@
+import type { Criterion } from "@/lib/types";
+
 export type Session = {
   id: string;
   code: string;
@@ -6,6 +8,7 @@ export type Session = {
   admin_password: string;
   is_active: boolean;
   created_at: string;
+  criteria?: Criterion[];
 };
 
 export type BeerReveal = {
@@ -37,6 +40,7 @@ export type Rating = {
   notes: string | null;
   locked: boolean;
   created_at: string;
+  criteria_scores?: Record<string, number>;
 };
 
 export type Database = {
