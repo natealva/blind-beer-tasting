@@ -223,10 +223,10 @@ export default function SessionDonePage() {
                 </div>
                 <div className="px-4 py-3 space-y-1 text-sm">
                   <p className="text-[var(--text-body)]">
-                    Crushability: <span className="font-semibold text-[var(--amber-gold)]">{r.crushability ?? "—"}</span>/10
+                    Taste: <span className="font-semibold text-[var(--amber-gold)]">{r.taste ?? "—"}</span>/10
                   </p>
                   <p className="text-[var(--text-body)]">
-                    Taste: <span className="font-semibold text-[var(--amber-gold)]">{r.taste ?? "—"}</span>/10
+                    Crushability: <span className="font-semibold text-[var(--amber-gold)]">{r.crushability ?? "—"}</span>/10
                   </p>
                   {r.guess && (
                     <p className="text-[var(--text-muted)]">
@@ -248,33 +248,33 @@ export default function SessionDonePage() {
           <>
             <section>
               <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">My Rankings</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3">
-                  <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by Taste</h3>
-                  <ul className="space-y-1" style={{ fontSize: "13px" }}>
-                    {myTasteRanked.map((row, idx) => (
-                      <li key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.taste.toFixed(1)}/10
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3">
+              <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
+                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3" style={{ minWidth: "130px", flex: 1 }}>
                   <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Overall Top Beers</h3>
                   <ul className="space-y-1" style={{ fontSize: "13px" }}>
                     {myOverallRanked.map((row, idx) => (
-                      <li key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.combined.toFixed(1)}/10
+                      <li key={row.beerNumber}>
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.combined.toFixed(1)}
                       </li>
                     ))}
                   </ul>
                 </div>
-                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3">
+                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3" style={{ minWidth: "130px", flex: 1 }}>
+                  <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by Taste</h3>
+                  <ul className="space-y-1" style={{ fontSize: "13px" }}>
+                    {myTasteRanked.map((row, idx) => (
+                      <li key={row.beerNumber}>
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.taste.toFixed(1)}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3" style={{ minWidth: "130px", flex: 1 }}>
                   <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by Crushability</h3>
                   <ul className="space-y-1" style={{ fontSize: "13px" }}>
                     {myCrushRanked.map((row, idx) => (
-                      <li key={row.beerNumber} style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.crush.toFixed(1)}/10
+                      <li key={row.beerNumber}>
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.crush.toFixed(1)}
                       </li>
                     ))}
                   </ul>
