@@ -754,13 +754,14 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                               ))} · {beerRatings.length} rating{beerRatings.length !== 1 ? "s" : ""}
                             </span>
                           </div>
-                          <div className="overflow-x-auto">
+                            <div className="overflow-x-auto">
                             <table className="w-full text-sm">
                               <thead>
                                 <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                                   <th className="px-3 py-2 font-medium">Player</th>
-                                  <th className="px-3 py-2 font-medium">Crush</th>
-                                  <th className="px-3 py-2 font-medium">Taste</th>
+                                  {criteria.map((c) => (
+                                    <th key={c.id} className="px-3 py-2 font-medium">{c.label}</th>
+                                  ))}
                                   <th className="px-3 py-2 font-medium">Guess</th>
                                   <th className="px-3 py-2 font-medium">Notes</th>
                                   <th className="px-3 py-2 w-10"></th>
@@ -769,7 +770,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                               <tbody className="divide-y divide-[var(--border-subtle)]">
                                 {beerRatings.length === 0 ? (
                                   <tr>
-                                    <td colSpan={6} className="px-3 py-2 text-[var(--text-muted)]">No ratings yet</td>
+                                    <td colSpan={3 + criteria.length} className="px-3 py-2 text-[var(--text-muted)]">No ratings yet</td>
                                   </tr>
                                 ) : (
                                   beerRatings.map((r) => {
@@ -777,7 +778,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                     return (
                                       <tr key={r.id} className="text-[var(--text-body)]">
                                         {isEditing ? (
-                                          <td colSpan={6} className="px-3 py-2 bg-amber-50/80">
+                                          <td colSpan={3 + criteria.length} className="px-3 py-2 bg-amber-50/80">
                                             <div className="flex flex-wrap gap-2 items-end">
                                               <div>
                                                 <label className="block text-[10px] text-[var(--text-muted)]">Crush</label>
@@ -858,8 +859,9 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                         ) : (
                                           <>
                                             <td className="px-3 py-2 font-medium">{playerMap.get(r.player_id)?.name ?? "—"}</td>
-                                            <td className="px-3 py-2">{r.crushability ?? "—"}</td>
-                                            <td className="px-3 py-2">{r.taste ?? "—"}</td>
+                                            {criteria.map((c) => (
+                                              <td key={c.id} className="px-3 py-2">{getCriterionScore(r, c.id) ?? "—"}</td>
+                                            ))}
                                             <td className="px-3 py-2 max-w-[120px] truncate" title={r.guess ?? ""}>{r.guess ?? "—"}</td>
                                             <td className="px-3 py-2 whitespace-normal break-words">{r.notes ?? "—"}</td>
                                             <td className="px-3 py-2 w-10">
@@ -868,8 +870,8 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                                 onClick={() => {
                                                   setEditingRating(r);
                                                   setEditForm({
-                                                    crushability: r.crushability ?? 0,
-                                                    taste: r.taste ?? 0,
+                                                    crushability: getCriterionScore(r, "crushability") ?? 0,
+                                                    taste: getCriterionScore(r, "taste") ?? 0,
                                                     guess: r.guess ?? "",
                                                     notes: r.notes ?? "",
                                                   });

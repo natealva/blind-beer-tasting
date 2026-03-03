@@ -40,8 +40,8 @@ export default function Home() {
       setTimeout(() => {
         setWordIndex((prev) => (prev + 1) % words.length);
         setFade(true);
-      }, 300);
-    }, 1800);
+      }, 200);
+    }, 1200);
     return () => clearInterval(interval);
   }, [words.length]);
 

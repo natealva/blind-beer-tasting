@@ -120,6 +120,7 @@ export default function SessionPlayPage() {
   const [inlineError, setInlineError] = useState<string | null>(null);
   const [currentGif, setCurrentGif] = useState<string>(getRandomBeerGif());
   const [allSessionRatings, setAllSessionRatings] = useState<Rating[]>([]);
+  const [isLocked, setIsLocked] = useState(false);
 
   const fetchAllSessionRatings = useCallback(async () => {
     if (!sessionId) return;
@@ -164,15 +165,19 @@ export default function SessionPlayPage() {
           .select("*")
           .eq("session_id", session.id)
           .eq("player_id", player.playerId)
-          .then(({ data }) => setRatings(data ?? []));
+          .then(({ data }) => {
+            const list = data ?? [];
+            setRatings(list);
+            const anyLocked = list.some((r: Rating) => r.locked === true);
+            setIsLocked(anyLocked);
+            setLoading(false);
+          });
 
         supabase
           .from("ratings")
           .select("*")
           .eq("session_id", session.id)
           .then(({ data }) => setAllSessionRatings(data ?? []));
-
-        setLoading(false);
       });
   }, [code, router]);
 
@@ -303,7 +308,6 @@ export default function SessionPlayPage() {
     );
   }
 
-  const isLocked = ratings.some((r) => r.locked === true);
   if (isLocked) {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center justify-center" style={{ textAlign: "center", padding: "40px 20px" }}>

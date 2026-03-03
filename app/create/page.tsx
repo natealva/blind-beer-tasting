@@ -1,11 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
-import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import { generateSessionCode } from "@/lib/code";
 
 export default function CreatePage() {
@@ -18,10 +16,6 @@ export default function CreatePage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [createdCode, setCreatedCode] = useState<string | null>(null);
-  const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
-  useEffect(() => {
-    setGifSrc(getRandomBeerGif());
-  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -74,14 +68,6 @@ export default function CreatePage() {
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm mb-6 inline-block">
           ← Back
         </Link>
-        <Image
-          src={gifSrc}
-          alt="Beer cheers"
-          width={120}
-          height={120}
-          unoptimized
-          className="mx-auto mb-4 rounded-lg"
-        />
         {!createdCode ? (
           <>
             <h1 className="text-2xl font-bold text-[var(--text-heading)] mb-6">Create a tasting session</h1>
