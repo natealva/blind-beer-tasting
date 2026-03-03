@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import html2canvas from "html2canvas";
 import { createSupabaseClient } from "@/lib/supabase";
 import type { Rating, BeerReveal } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
@@ -156,6 +157,7 @@ export default function SessionRevealPage() {
   const router = useRouter();
   const code = (params?.code as string) ?? "";
   const [playerName, setPlayerName] = useState("");
+  const [sessionName, setSessionName] = useState("");
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [reveals, setReveals] = useState<BeerReveal[]>([]);
   const [allSessionRatings, setAllSessionRatings] = useState<Rating[]>([]);
@@ -179,7 +181,7 @@ export default function SessionRevealPage() {
     const supabase = createSupabaseClient();
     supabase
       .from("sessions")
-      .select("id")
+      .select("id, name")
       .eq("code", code)
       .single()
       .then(({ data: session, error }) => {
@@ -187,6 +189,7 @@ export default function SessionRevealPage() {
           setLoading(false);
           return;
         }
+        setSessionName((session as { id: string; name: string }).name ?? "");
         Promise.all([
           supabase.from("ratings").select("*").eq("session_id", session.id).eq("player_id", playerId),
           supabase.from("beer_reveals").select("*").eq("session_id", session.id).order("beer_number"),
@@ -270,6 +273,50 @@ export default function SessionRevealPage() {
     };
   }, [allSessionRatings]);
 
+  const beerNumbersWithGroupRatings = useMemo(() => {
+    const set = new Set<number>();
+    for (const r of allSessionRatings) {
+      if (r.taste != null || r.crushability != null) set.add(r.beer_number);
+    }
+    return Array.from(set).sort((a, b) => a - b);
+  }, [allSessionRatings]);
+
+  const groupOverallRanked = useMemo(
+    () =>
+      beerNumbersWithGroupRatings
+        .map((beerNumber) => {
+          const t = groupAvgByBeer.taste(beerNumber);
+          const c = groupAvgByBeer.crush(beerNumber);
+          const combined = (t + c) / 2;
+          const name = revealByNumber.get(beerNumber)?.beer_name ?? `Beer #${beerNumber}`;
+          return { beerNumber, name, combined };
+        })
+        .sort((a, b) => b.combined - a.combined),
+    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber]
+  );
+  const groupTasteRanked = useMemo(
+    () =>
+      beerNumbersWithGroupRatings
+        .map((beerNumber) => {
+          const score = groupAvgByBeer.taste(beerNumber);
+          const name = revealByNumber.get(beerNumber)?.beer_name ?? `Beer #${beerNumber}`;
+          return { beerNumber, name, score };
+        })
+        .sort((a, b) => b.score - a.score),
+    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber]
+  );
+  const groupCrushRanked = useMemo(
+    () =>
+      beerNumbersWithGroupRatings
+        .map((beerNumber) => {
+          const score = groupAvgByBeer.crush(beerNumber);
+          const name = revealByNumber.get(beerNumber)?.beer_name ?? `Beer #${beerNumber}`;
+          return { beerNumber, name, score };
+        })
+        .sort((a, b) => b.score - a.score),
+    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber]
+  );
+
   const chartTasteRows = useMemo(
     () =>
       withScores
@@ -285,6 +332,28 @@ export default function SessionRevealPage() {
     [withScores]
   );
 
+  const myGuessesForScorecard = useMemo(
+    () =>
+      sortedRatings.map((r) => {
+        const beerName = revealByNumber.get(r.beer_number)?.beer_name ?? `Beer #${r.beer_number}`;
+        const guess = r.guess?.trim() ?? "";
+        const actual = revealByNumber.get(r.beer_number)?.beer_name?.trim().toLowerCase() ?? "";
+        const result = !guess ? "—" : actual && guess.toLowerCase() === actual ? "✅" : "❌";
+        return { beerName, guess: guess || "(no guess)", result };
+      }),
+    [sortedRatings, revealByNumber]
+  );
+
+  const handleDownload = useCallback(async () => {
+    const element = document.getElementById("scorecard-download");
+    if (!element) return;
+    const canvas = await html2canvas(element, { scale: 2, useCORS: true });
+    const link = document.createElement("a");
+    link.download = `${playerName}-beer-scorecard.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }, [playerName]);
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
@@ -295,6 +364,96 @@ export default function SessionRevealPage() {
 
   return (
     <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
+      {/* Hidden div for scorecard image export */}
+      <div
+        id="scorecard-download"
+        style={{
+          position: "fixed",
+          left: "-9999px",
+          top: 0,
+          width: "400px",
+          padding: "32px",
+          background: "#fffbeb",
+          fontFamily: "Nunito, sans-serif",
+          color: "#451a03",
+        }}
+      >
+        <div style={{ textAlign: "center", marginBottom: "24px" }}>
+          <div style={{ fontSize: "32px" }}>🍺</div>
+          <div style={{ fontSize: "22px", fontWeight: 800 }}>{sessionName || "Blind Beer Tasting"}</div>
+          <div style={{ fontSize: "16px", fontWeight: 600 }}>{playerName}&apos;s Scorecard</div>
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY RANKINGS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "11px" }}>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
+              {myOverallRanked.map((row, idx) => (
+                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}/10</div>
+              ))}
+              {myOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: "4px" }}>Taste</div>
+              {myTasteRanked.map((row, idx) => (
+                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.taste}/10</div>
+              ))}
+              {myTasteRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: "4px" }}>Crushability</div>
+              {myCrushRanked.map((row, idx) => (
+                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.crush}/10</div>
+              ))}
+              {myCrushRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY GUESSES</div>
+          <div style={{ fontSize: "11px" }}>
+            {myGuessesForScorecard.map((g, idx) => (
+              <div key={idx}>{g.beerName} · Guessed: {g.guess} · {g.result}</div>
+            ))}
+            {myGuessesForScorecard.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+          </div>
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>GROUP RANKINGS</div>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "8px", fontSize: "11px" }}>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
+              {groupOverallRanked.map((row, idx) => (
+                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}/10</div>
+              ))}
+              {groupOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: "4px" }}>Taste</div>
+              {groupTasteRanked.map((row, idx) => (
+                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
+              ))}
+              {groupTasteRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, marginBottom: "4px" }}>Crushability</div>
+              {groupCrushRanked.map((row, idx) => (
+                <div key={row.beerNumber}>{idx + 1}. {row.name} — {row.score.toFixed(1)}/10</div>
+              ))}
+              {groupCrushRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+            </div>
+          </div>
+        </div>
+
+        <div style={{ textAlign: "center", marginTop: "24px", paddingTop: "16px", borderTop: "1px solid #fcd34d", fontSize: "11px", color: "#92400e" }}>
+          Want to host your own tasting? Visit:<br />
+          <strong>blind-beer-tasting.vercel.app</strong>
+        </div>
+      </div>
+
       <div className="w-full max-w-[480px] mx-auto space-y-8">
         <h1 className="text-3xl font-bold text-[var(--text-heading)] text-center">
           🍺 The Big Reveal!
@@ -424,6 +583,13 @@ export default function SessionRevealPage() {
         )}
 
         <div className="flex flex-col gap-3">
+          <button
+            type="button"
+            onClick={handleDownload}
+            className="block w-full text-center rounded-xl bg-white border-2 border-[var(--border-amber)] hover:bg-amber-50 text-[var(--text-heading)] font-bold py-3.5 transition-colors"
+          >
+            📱 Download Your Scorecard
+          </button>
           <Link
             href={`/session/${code}/play`}
             className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors"
