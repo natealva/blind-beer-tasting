@@ -65,6 +65,21 @@ export default function SessionJoinPage() {
     const nameLower = playerName.trim().toLowerCase();
     const existing = existingPlayers?.find((p) => p.name.trim().toLowerCase() === nameLower);
     if (existing) {
+      const { data: existingRatings } = await supabase
+        .from("ratings")
+        .select("locked")
+        .eq("player_id", existing.id);
+      const isLocked = existingRatings?.some((r) => r.locked === true);
+      if (isLocked) {
+        if (typeof window !== "undefined") {
+          sessionStorage.setItem("player_id", existing.id);
+          sessionStorage.setItem("player_name", existing.name.trim());
+          sessionStorage.setItem("player_session_code", code);
+        }
+        router.push(`/session/${code}/reveal`);
+        setLoading(false);
+        return;
+      }
       if (typeof window !== "undefined") {
         sessionStorage.setItem("player_id", existing.id);
         sessionStorage.setItem("player_name", existing.name.trim());

@@ -10,7 +10,7 @@ import type { Rating, BeerReveal } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
 const CHART_HEIGHT = 200;
-const BAR_WIDTH = 40;
+const BAR_WIDTH = 44;
 
 function pxFromScore(score: number): number {
   return Math.max(0, (score / 10) * CHART_HEIGHT);
@@ -34,119 +34,44 @@ function UserVsGroupChart({
       <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">{title}</h3>
       <p className="text-[10px] text-[var(--text-muted)] mb-2">▬ Group average</p>
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }}>
-        <div style={{ position: "relative", height: "200px", width: "24px", flexShrink: 0 }}>
+        <div style={{ position: "relative", height: "200px", width: "28px", flexShrink: 0 }}>
           {[10, 8, 6, 4, 2, 0].map((val, i) => (
-            <span
-              key={val}
-              style={{
-                position: "absolute",
-                top: `${i * 40}px`,
-                right: "2px",
-                transform: "translateY(-50%)",
-                fontSize: "11px",
-                color: "#92400e",
-                lineHeight: 1,
-              }}
-            >
-              {val}
-            </span>
+            <span key={val} style={{ position: "absolute", top: `${i * 40}px`, right: "2px", transform: "translateY(-50%)", fontSize: "11px", color: "#92400e" }}>{val}</span>
           ))}
         </div>
-        <div style={{ display: "flex", flexDirection: "column", flexGrow: 1, overflowX: "auto" }}>
-          <div
-            style={{
-              position: "relative",
-              height: "200px",
-              display: "flex",
-              alignItems: "flex-end",
-              gap: "12px",
-              borderLeft: "1px solid #d97706",
-              borderBottom: "1px solid #d97706",
-              paddingLeft: "4px",
-              overflowX: "auto",
-            }}
-          >
-            {[0, 40, 80, 120, 160].map((topPx) => (
-              <div
-                key={topPx}
-                style={{
-                  position: "absolute",
-                  top: `${topPx}px`,
-                  left: 0,
-                  right: 0,
-                  height: "1px",
-                  background: "rgba(217,119,6,0.15)",
-                  pointerEvents: "none",
-                }}
-              />
-            ))}
-            {rows.map((row) => {
-              const userScore = getValue(row);
-              const groupAvg = getGroupAvg(row.beerNumber);
-              const barHeightPx = pxFromScore(userScore);
-              const groupLineBottomPx = groupAvg >= 0 && groupAvg <= 10 ? pxFromScore(groupAvg) : null;
-              const barColor = userScore >= groupAvg ? "#d97706" : "#fcd34d";
-              return (
-                <div
-                  key={row.beerNumber}
-                  style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}
-                >
-                  {groupLineBottomPx != null && groupLineBottomPx > 0 && (
-                    <div
-                      style={{
-                        position: "absolute",
-                        bottom: `${groupLineBottomPx}px`,
-                        left: 0,
-                        right: 0,
-                        height: "2px",
-                        background: "#7f1d1d",
-                        pointerEvents: "none",
-                        zIndex: 2,
-                      }}
-                      title={`Group avg: ${groupAvg.toFixed(1)}`}
-                    />
-                  )}
-                  <div
-                    style={{
-                      position: "absolute",
-                      bottom: 0,
-                      left: 0,
-                      height: `${barHeightPx}px`,
-                      width: `${BAR_WIDTH}px`,
-                      background: barColor,
-                      borderRadius: "4px 4px 0 0",
-                      minHeight: barHeightPx > 0 ? 2 : 0,
-                    }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-          <div style={{ display: "flex", gap: "12px", paddingLeft: "4px", marginTop: "4px" }}>
-            {rows.map((row) => {
-              const beerName = getBeerName?.(row.beerNumber) ?? null;
-              const label = beerName ?? `Beer #${row.beerNumber}`;
-              return (
-                <div
-                  key={row.beerNumber}
-                  style={{
-                    width: "52px",
-                    fontSize: "10px",
-                    textAlign: "center",
-                    color: "#92400e",
-                    marginTop: "4px",
-                    wordBreak: "break-word",
-                    overflowWrap: "break-word",
-                    whiteSpace: "normal",
-                    lineHeight: "1.2",
-                    hyphens: "none",
-                    flexShrink: 0,
-                  }}
-                >
-                  {label}
-                </div>
-              );
-            })}
+        <div style={{ overflowX: "auto", borderLeft: "1px solid #d97706", borderBottom: "1px solid #d97706", flexGrow: 1 }}>
+          <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
+            <div style={{ position: "relative", height: "200px", display: "flex", alignItems: "flex-end", gap: "12px", padding: "0 8px" }}>
+              {[0, 40, 80, 120, 160].map((topPx) => (
+                <div key={topPx} style={{ position: "absolute", top: `${topPx}px`, left: 0, right: 0, height: "1px", background: "rgba(217,119,6,0.15)", pointerEvents: "none" }} />
+              ))}
+              {rows.map((row) => {
+                const userScore = getValue(row);
+                const groupAvg = getGroupAvg(row.beerNumber);
+                const barHeightPx = pxFromScore(userScore);
+                const groupLineBottomPx = groupAvg >= 0 && groupAvg <= 10 ? pxFromScore(groupAvg) : null;
+                const barColor = userScore >= groupAvg ? "#d97706" : "#fbbf24";
+                return (
+                  <div key={row.beerNumber} style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}>
+                    {groupLineBottomPx != null && groupLineBottomPx > 0 && (
+                      <div style={{ position: "absolute", bottom: `${groupLineBottomPx}px`, left: 0, right: 0, height: "2px", background: "#7f1d1d", zIndex: 2, pointerEvents: "none" }} title={`Group avg: ${groupAvg.toFixed(1)}`} />
+                    )}
+                    <div style={{ position: "absolute", bottom: 0, left: 0, height: `${barHeightPx}px`, width: `${BAR_WIDTH}px`, background: barColor, borderRadius: "4px 4px 0 0", minHeight: barHeightPx > 0 ? 2 : 0 }} />
+                  </div>
+                );
+              })}
+            </div>
+            <div style={{ display: "flex", gap: "12px", padding: "4px 8px 0" }}>
+              {rows.map((row) => {
+                const beerName = getBeerName?.(row.beerNumber) ?? null;
+                const label = beerName ?? `Beer #${row.beerNumber}`;
+                return (
+                  <div key={row.beerNumber} style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}>
+                    {label}
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
