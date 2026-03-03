@@ -6,11 +6,14 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
+import { isBeer } from "@/lib/tastingUtils";
+import type { Session } from "@/types/database";
 
 export default function SessionJoinPage() {
   const router = useRouter();
   const params = useParams();
   const code = (params?.code as string) ?? "";
+  const [session, setSession] = useState<Session | null>(null);
   const [sessionName, setSessionName] = useState<string | null>(null);
   const [playerName, setPlayerName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -23,21 +26,25 @@ export default function SessionJoinPage() {
 
   useEffect(() => {
     const supabase = createSupabaseClient();
+    const normalized = code.toString().toUpperCase().trim();
+    // Debug logging to help trace join lookups
+    // eslint-disable-next-line no-console
+    console.log("[join] looking up session", { code, normalized });
     supabase
       .from("sessions")
-      .select("id, name, is_active")
-      .eq("code", code)
+      .select("*")
+      .eq("code", normalized)
+      .eq("is_active", true)
       .single()
       .then(({ data, error: e }) => {
         setChecking(false);
+        // eslint-disable-next-line no-console
+        console.log("[join] session result", { error: e, data });
         if (e || !data) {
           setError("Session not found. Check your code!");
           return;
         }
-        if (!data.is_active) {
-          setError("This session is no longer active.");
-          return;
-        }
+        setSession(data as Session);
         setSessionName(data.name);
       });
   }, [code]);
@@ -52,8 +59,16 @@ export default function SessionJoinPage() {
     setError(null);
     setLoading(true);
     const supabase = createSupabaseClient();
-    const { data: session } = await supabase.from("sessions").select("id").eq("code", code).single();
-    if (!session) {
+    const normalized = code.toString().toUpperCase().trim();
+    const { data: sessionRow, error: sessionError } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("code", normalized)
+      .eq("is_active", true)
+      .single();
+    // eslint-disable-next-line no-console
+    console.log("[join] submit session lookup", { code, normalized, sessionRow, sessionError });
+    if (sessionError || !sessionRow) {
       setError("Session not found.");
       setLoading(false);
       return;
@@ -61,7 +76,7 @@ export default function SessionJoinPage() {
     const { data: existingPlayers } = await supabase
       .from("players")
       .select("id, name")
-      .eq("session_id", session.id);
+      .eq("session_id", sessionRow.id);
     const nameLower = playerName.trim().toLowerCase();
     const existing = existingPlayers?.find((p) => p.name.trim().toLowerCase() === nameLower);
     if (existing) {
@@ -94,7 +109,7 @@ export default function SessionJoinPage() {
     const { data: player, error: insertError } = await supabase
       .from("players")
       .insert({
-        session_id: session.id,
+        session_id: sessionRow.id,
         name: playerName.trim(),
         order_direction: orderDirection,
       })
@@ -108,9 +123,9 @@ export default function SessionJoinPage() {
     if (typeof window !== "undefined") {
       sessionStorage.setItem("player_id", player.id);
       sessionStorage.setItem("player_name", playerName.trim());
-      sessionStorage.setItem("player_session_code", code);
+      sessionStorage.setItem("player_session_code", normalized);
     }
-    router.push(`/session/${code}/play`);
+    router.push(`/session/${normalized}/play`);
     setLoading(false);
   }
 
@@ -141,14 +156,16 @@ export default function SessionJoinPage() {
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm mb-6 inline-block">
           ← Back
         </Link>
-        <Image
-          src={gifSrc}
-          alt="Beer cheers"
-          width={120}
-          height={120}
-          unoptimized
-          className="mx-auto mb-4 rounded-lg"
-        />
+        {session && isBeer(session) && (
+          <Image
+            src={gifSrc}
+            alt="Beer cheers"
+            width={120}
+            height={120}
+            unoptimized
+            className="mx-auto mb-4 rounded-lg"
+          />
+        )}
         <h1 className="text-2xl font-bold text-[var(--text-heading)] mb-1">{sessionName}</h1>
         <h2 className="text-xl text-[var(--text-muted)] mb-6">Join the Tasting</h2>
         <form onSubmit={handleSubmit} className="space-y-4">

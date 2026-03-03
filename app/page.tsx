@@ -33,7 +33,7 @@ export default function Home() {
     const supabase = createSupabaseClient();
     const { data, error: fetchError } = await supabase
       .from("sessions")
-      .select("id, code, is_active")
+      .select("*")
       .eq("code", trimmed)
       .single();
     if (fetchError || !data) {

@@ -6,7 +6,8 @@ import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import { getCriteria, getCriterionScore } from "@/lib/criteriaUtils";
-import type { BeerReveal, Player, Rating } from "@/types/database";
+import { getItemLabel } from "@/lib/tastingUtils";
+import type { BeerReveal, Player, Rating, Session } from "@/types/database";
 import type { Criterion } from "@/lib/types";
 import { ScorecardsContent } from "../scorecards/ScorecardsContent";
 
@@ -30,9 +31,10 @@ type Props = {
   sessionId: string;
   sessionName: string;
   beerCount: number;
+  tastingType?: string;
 };
 
-export default function SessionAdminClient({ code, sessionId, sessionName, beerCount }: Props) {
+export default function SessionAdminClient({ code, sessionId, sessionName, beerCount, tastingType }: Props) {
   const [reveals, setReveals] = useState<BeerReveal[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [tab, setTab] = useState<"reveals" | "criteria" | "players" | "results" | "scorecards">("reveals");
@@ -59,6 +61,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [scorecardsRatings, setScorecardsRatings] = useState<Rating[]>([]);
   const [scorecardsLoading, setScorecardsLoading] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
+  const [session, setSession] = useState<Session | null>(null);
   useEffect(() => {
     setGifSrc(getRandomBeerGif());
   }, []);
@@ -78,10 +81,12 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       .then(({ data }) => setPlayers(data ?? []));
     supabase
       .from("sessions")
-      .select("criteria")
+      .select("*")
       .eq("id", sessionId)
       .single()
       .then(({ data }) => {
+        if (!data) return;
+        setSession(data as Session);
         const c = getCriteria(data);
         if (c.length >= 2) setCriteria(c);
       });
@@ -288,7 +293,8 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     getValue: (row: BeerStat) => number;
     barColor: string;
   }) {
-    const labelText = (row: BeerStat) => row.name ?? `Beer #${row.beerNumber}`;
+    const itemLabel = session ? getItemLabel({ tasting_type: tastingType ?? session.tasting_type }) : "Beer";
+    const labelText = (row: BeerStat) => row.name ?? `${itemLabel} #${row.beerNumber}`;
     return (
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }} className="-mx-1 pb-2">
         <div style={{ position: "relative", height: "200px", width: "28px", flexShrink: 0 }}>
@@ -363,7 +369,8 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                   {idx === 0 ? <span title="Top beer">👑</span> : null} #{idx + 1}
                 </td>
                 <td className="px-3 py-2 font-medium text-[var(--text-heading)]">
-                  Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""}
+                  {itemLabel} #{row.beerNumber}
+                  {row.name ? ` · ${row.name}` : ""}
                 </td>
                 <td className="px-3 py-2 font-semibold text-[var(--amber-gold)]">
                   {row.ratings.length ? sortValue(row).toFixed(1) : "—"}
@@ -381,6 +388,8 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       </div>
     );
   }
+
+  const itemLabel = session ? getItemLabel({ tasting_type: tastingType ?? session.tasting_type }) : "Beer";
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-8">
@@ -732,7 +741,9 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                       return (
                         <div key={beerNumber} className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-amber)] overflow-hidden">
                           <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex flex-wrap items-baseline gap-x-3 gap-y-1 bg-[var(--progress-track)]">
-                            <span className="font-mono font-bold text-[var(--amber-gold)]">Beer #{beerNumber}</span>
+                            <span className="font-mono font-bold text-[var(--amber-gold)]">
+                              {itemLabel} #{beerNumber}
+                            </span>
                             {name && <span className="text-[var(--text-heading)]">{name}</span>}
                             <span className="text-[var(--text-muted)] text-sm">
                               {criteria.map((c, i) => (

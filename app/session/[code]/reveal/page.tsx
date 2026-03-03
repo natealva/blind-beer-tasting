@@ -7,8 +7,9 @@ import Image from "next/image";
 import html2canvas from "html2canvas";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
-import type { Rating, BeerReveal } from "@/types/database";
+import type { Rating, BeerReveal, Session } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
+import { getItemLabel, isBeer } from "@/lib/tastingUtils";
 
 const CHART_HEIGHT = 200;
 const BAR_WIDTH = 44;
@@ -65,9 +66,12 @@ function UserVsGroupChart({
             <div style={{ display: "flex", gap: "12px", padding: "4px 8px 0" }}>
               {rows.map((row) => {
                 const beerName = getBeerName?.(row.beerNumber) ?? null;
-                const label = beerName ?? `Beer #${row.beerNumber}`;
+                const label = beerName ?? `#${row.beerNumber}`;
                 return (
-                  <div key={row.beerNumber} style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}>
+                  <div
+                    key={row.beerNumber}
+                    style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
+                  >
                     {label}
                   </div>
                 );
@@ -86,6 +90,7 @@ export default function SessionRevealPage() {
   const code = (params?.code as string) ?? "";
   const [playerName, setPlayerName] = useState("");
   const [sessionName, setSessionName] = useState("");
+  const [session, setSession] = useState<Session | null>(null);
   const [criteria, setCriteria] = useState(getCriteria(null));
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [reveals, setReveals] = useState<BeerReveal[]>([]);
@@ -110,7 +115,7 @@ export default function SessionRevealPage() {
     const supabase = createSupabaseClient();
     supabase
       .from("sessions")
-      .select("id, name, criteria")
+      .select("*")
       .eq("code", code)
       .single()
       .then(({ data: session, error }) => {
@@ -118,6 +123,7 @@ export default function SessionRevealPage() {
           setLoading(false);
           return;
         }
+        setSession(session as Session);
         setSessionName((session as { id: string; name: string }).name ?? "");
         setCriteria(getCriteria(session));
         Promise.all([
@@ -146,6 +152,8 @@ export default function SessionRevealPage() {
     [sortedRatings, criteria]
   );
 
+  // criteria is stable for a given session; we intentionally omit it from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const avgByCriterion = useMemo(() => {
     return criteria.map((c) => ({
       criterion: c,
@@ -153,7 +161,7 @@ export default function SessionRevealPage() {
         ? withScores.reduce((s, r) => s + (getCriterionScore(r, c.id) ?? 0), 0) / withScores.length
         : 0,
     }));
-  }, [withScores, criteria]);
+  }, [withScores]);
 
   const myOverallRanked = useMemo(
     () =>
@@ -221,11 +229,13 @@ export default function SessionRevealPage() {
             criteria.length > 0
               ? criteria.reduce((sum, c) => sum + groupAvgByBeer(c.id)(beerNumber), 0) / criteria.length
               : 0;
-          const name = revealByNumber.get(beerNumber)?.beer_name ?? `Beer #${beerNumber}`;
+          const name = revealByNumber.get(beerNumber)?.beer_name ?? `${itemLabel} #${beerNumber}`;
           return { beerNumber, name, combined };
         })
         .sort((a, b) => b.combined - a.combined),
-    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber, criteria]
+    // criteria and itemLabel are stable per session; omit from deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber]
   );
 
   const groupRankedByCriterion = useMemo(
@@ -235,12 +245,13 @@ export default function SessionRevealPage() {
         ranked: beerNumbersWithGroupRatings
           .map((beerNumber) => ({
             beerNumber,
-            name: revealByNumber.get(beerNumber)?.beer_name ?? `Beer #${beerNumber}`,
+            name: revealByNumber.get(beerNumber)?.beer_name ?? `${itemLabel} #${beerNumber}`,
             score: groupAvgByBeer(c.id)(beerNumber),
           }))
           .sort((a, b) => b.score - a.score),
       })),
-    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber, criteria]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber]
   );
 
   const chartRowsByCriterion = useMemo(
@@ -257,7 +268,7 @@ export default function SessionRevealPage() {
   const myGuessesForScorecard = useMemo(
     () =>
       sortedRatings.map((r) => {
-        const beerName = revealByNumber.get(r.beer_number)?.beer_name ?? `Beer #${r.beer_number}`;
+        const beerName = revealByNumber.get(r.beer_number)?.beer_name ?? `${itemLabel} #${r.beer_number}`;
         const guess = r.guess?.trim() ?? "";
         const actual = revealByNumber.get(r.beer_number)?.beer_name?.trim().toLowerCase() ?? "";
         const result = !guess ? "—" : actual && guess.toLowerCase() === actual ? "✅" : "❌";
@@ -265,6 +276,8 @@ export default function SessionRevealPage() {
       }),
     [sortedRatings, revealByNumber]
   );
+
+  const itemLabel = session ? getItemLabel(session) : "Beer";
 
   const handleDownload = useCallback(async () => {
     const element = document.getElementById("scorecard-download");
@@ -312,7 +325,9 @@ export default function SessionRevealPage() {
             <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
               {myOverallRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>
+                  {idx + 1}. {row.name ?? `${itemLabel} #${row.beerNumber}`} — {row.combined.toFixed(1)}
+                </div>
               ))}
               {myOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
@@ -320,7 +335,9 @@ export default function SessionRevealPage() {
               <div key={criterion.id}>
                 <div style={{ fontWeight: 700, marginBottom: "4px" }}>{criterion.label}</div>
                 {ranked.map((row, idx) => (
-                  <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name ?? `Beer #${row.beerNumber}`} — {row.score.toFixed(1)}</div>
+                  <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>
+                    {idx + 1}. {row.name ?? `${itemLabel} #${row.beerNumber}`} — {row.score.toFixed(1)}
+                  </div>
                 ))}
                 {ranked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
               </div>
@@ -344,7 +361,9 @@ export default function SessionRevealPage() {
             <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
               {groupOverallRanked.map((row, idx) => (
-                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name} — {row.combined.toFixed(1)}</div>
+                <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>
+                  {idx + 1}. {row.name} — {row.combined.toFixed(1)}
+                </div>
               ))}
               {groupOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
             </div>
@@ -352,7 +371,9 @@ export default function SessionRevealPage() {
               <div key={criterion.id}>
                 <div style={{ fontWeight: 700, marginBottom: "4px" }}>{criterion.label}</div>
                 {ranked.map((row, idx) => (
-                  <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>{idx + 1}. {row.name} — {row.score.toFixed(1)}</div>
+                  <div key={row.beerNumber} style={{ whiteSpace: "normal" }}>
+                    {idx + 1}. {row.name} — {row.score.toFixed(1)}
+                  </div>
                 ))}
                 {ranked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
               </div>
@@ -370,14 +391,16 @@ export default function SessionRevealPage() {
         <h1 className="text-3xl font-bold text-[var(--text-heading)] text-center">
           🍺 The Big Reveal!
         </h1>
-        <Image
-          src={gifSrc}
-          alt="Beer cheers"
-          width={120}
-          height={120}
-          unoptimized
-          className="mx-auto rounded-lg"
-        />
+        {session && isBeer(session) && (
+          <Image
+            src={gifSrc}
+            alt="Beer cheers"
+            width={120}
+            height={120}
+            unoptimized
+            className="mx-auto rounded-lg"
+          />
+        )}
         <p className="text-[var(--text-muted)] text-center text-sm">
           Here&apos;s your summary with the actual beer names, {playerName}.
         </p>
@@ -394,7 +417,9 @@ export default function SessionRevealPage() {
                   className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] overflow-hidden"
                 >
                   <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
-                    <span className="font-mono font-bold text-[var(--amber-gold)]">Beer #{r.beer_number}</span>
+                    <span className="font-mono font-bold text-[var(--amber-gold)]">
+                      {itemLabel} #{r.beer_number}
+                    </span>
                     {rev?.beer_name && (
                       <span className="ml-2 text-[var(--text-heading)] font-medium">{rev.beer_name}</span>
                     )}
@@ -459,7 +484,7 @@ export default function SessionRevealPage() {
                       key={row.beerNumber}
                       style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
                     >
-                      <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}
+                      <span className="font-bold">{idx + 1}.</span> {row.name ?? `${itemLabel} #${row.beerNumber}`} — {row.combined.toFixed(1)}
                     </div>
                   ))}
                 </div>
@@ -475,7 +500,7 @@ export default function SessionRevealPage() {
                         key={row.beerNumber}
                         style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
                       >
-                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.score.toFixed(1)}
+                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `${itemLabel} #${row.beerNumber}`} — {row.score.toFixed(1)}
                       </div>
                     ))}
                   </div>

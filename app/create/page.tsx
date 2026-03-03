@@ -12,6 +12,8 @@ export default function CreatePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [beerCount, setBeerCount] = useState(13);
+  const [tastingType, setTastingType] = useState("Beer");
+  const [customTastingType, setCustomTastingType] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -28,6 +30,7 @@ export default function CreatePage() {
     const supabase = createSupabaseClient();
     let code = generateSessionCode(6);
     const maxAttempts = 10;
+    const baseType = tastingType === "Custom..." ? (customTastingType.trim() || "Beer") : tastingType;
     for (let i = 0; i < maxAttempts; i++) {
       const { data, error: insertError } = await supabase
         .from("sessions")
@@ -36,6 +39,7 @@ export default function CreatePage() {
           name: name.trim() || "Blind Tasting",
           beer_count: Math.min(99, Math.max(1, beerCount)),
           admin_password: adminPassword || "admin",
+          tasting_type: baseType,
         })
         .select("id, code")
         .single();
@@ -91,6 +95,37 @@ export default function CreatePage() {
                   placeholder="e.g. Nate's Beer Night"
                   className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
                 />
+              </div>
+              <div>
+                <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">What are you tasting?</label>
+                <select
+                  value={tastingType}
+                  onChange={(e) => {
+                    setTastingType(e.target.value);
+                    if (e.target.value !== "Custom...") {
+                      setCustomTastingType("");
+                    }
+                  }}
+                  className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                >
+                  <option value="Beer">🍺 Beer</option>
+                  <option value="Wine">🍷 Wine</option>
+                  <option value="Seltzer">🥂 Seltzer</option>
+                  <option value="Steak">🥩 Steak</option>
+                  <option value="Food">🍕 Food</option>
+                  <option value="Cheese">🧀 Cheese</option>
+                  <option value="Cocktails">🫗 Cocktails</option>
+                  <option value="Custom...">✏️ Custom...</option>
+                </select>
+                {tastingType === "Custom..." && (
+                  <input
+                    type="text"
+                    value={customTastingType}
+                    onChange={(e) => setCustomTastingType(e.target.value)}
+                    placeholder="e.g. Mezcal, Hot Sauce..."
+                    className="mt-2 w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                  />
+                )}
               </div>
               <div>
                 <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">Number of beers</label>

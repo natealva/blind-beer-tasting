@@ -9,6 +9,7 @@ export type Session = {
   is_active: boolean;
   created_at: string;
   criteria?: Criterion[];
+  tasting_type?: string;
 };
 
 export type BeerReveal = {

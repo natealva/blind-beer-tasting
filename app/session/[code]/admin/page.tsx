@@ -34,6 +34,7 @@ export default async function SessionAdminPage({
         sessionId={session.id}
         sessionName={session.name}
         beerCount={session.beer_count}
+        tastingType={session.tasting_type}
       />
     </div>
   );

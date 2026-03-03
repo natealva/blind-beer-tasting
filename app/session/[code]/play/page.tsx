@@ -7,7 +7,8 @@ import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRandomBeerGif } from "@/lib/beerGifs";
 import { getCriteria, getCriterionScore } from "@/lib/criteriaUtils";
-import type { Rating, BeerReveal } from "@/types/database";
+import { getItemLabel, isBeer } from "@/lib/tastingUtils";
+import type { Rating, BeerReveal, Session } from "@/types/database";
 
 const CHART_HEIGHT = 200;
 const BAR_WIDTH = 44;
@@ -75,8 +76,11 @@ function GroupBarChart({
             </div>
             <div style={{ display: "flex", gap: "12px", padding: "4px 8px 0" }}>
               {rows.map((row) => (
-                <div key={row.beerNumber} style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}>
-                  Beer #{row.beerNumber}
+                <div
+                  key={row.beerNumber}
+                  style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
+                >
+                  #{row.beerNumber}
                 </div>
               ))}
             </div>
@@ -103,6 +107,7 @@ export default function SessionPlayPage() {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [beerCount, setBeerCount] = useState(0);
+  const [session, setSession] = useState<Session | null>(null);
   const [criteria, setCriteria] = useState(getCriteria(null));
   const [beerReveals, setBeerReveals] = useState<BeerReveal[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
@@ -134,7 +139,7 @@ export default function SessionPlayPage() {
     const supabase = createSupabaseClient();
     supabase
       .from("sessions")
-      .select("id, beer_count, criteria")
+      .select("*")
       .eq("code", code)
       .single()
       .then(({ data: session, error: se }) => {
@@ -142,6 +147,7 @@ export default function SessionPlayPage() {
           setLoading(false);
           return;
         }
+        setSession(session as Session);
         setSessionId(session.id);
         setBeerCount(session.beer_count);
         setCriteria(getCriteria(session));
@@ -180,6 +186,8 @@ export default function SessionPlayPage() {
     [ratings]
   );
 
+  // criteria is stable for a given session; we intentionally omit it from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const groupChartData = useMemo(() => {
     return criteria.map((c) => {
       const byBeer = new Map<number, number[]>();
@@ -269,6 +277,8 @@ export default function SessionPlayPage() {
     fetchAllSessionRatings();
   }
 
+  const itemLabel = session ? getItemLabel(session) : "Beer";
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
@@ -326,6 +336,7 @@ export default function SessionPlayPage() {
           <BeerRatingForm
             key={selectedBeerNumber}
             beerNumber={selectedBeerNumber}
+            itemLabel={itemLabel}
             criteria={criteria}
             existing={existingRating}
             beerReveals={beerReveals}
@@ -379,15 +390,19 @@ export default function SessionPlayPage() {
         <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] text-sm inline-block mb-4">
           Home
         </Link>
-        <Image
-          src={currentGif}
-          alt="Beer cheers"
-          width={120}
-          height={120}
-          unoptimized
-          className="mx-auto mb-4 rounded-lg"
-        />
-        <h1 className="text-2xl font-bold text-[var(--text-heading)]">Which beer are you tasting?</h1>
+        {session && isBeer(session) && (
+          <Image
+            src={currentGif}
+            alt="Beer cheers"
+            width={120}
+            height={120}
+            unoptimized
+            className="mx-auto mb-4 rounded-lg"
+          />
+        )}
+        <h1 className="text-2xl font-bold text-[var(--text-heading)]">
+          Which {itemLabel} are you tasting?
+        </h1>
         <select
           value={pickerSelection === "" ? "" : pickerSelection}
           onChange={(e) => {
@@ -398,7 +413,9 @@ export default function SessionPlayPage() {
         >
           <option value="">Select a beer number</option>
           {allBeerNumbers.map((n) => (
-            <option key={n} value={n}>Beer #{n}</option>
+          <option key={n} value={n}>
+            {itemLabel} #{n}
+          </option>
           ))}
         </select>
         <button
@@ -407,7 +424,7 @@ export default function SessionPlayPage() {
           disabled={pickerSelection === ""}
           className="w-full rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] disabled:opacity-50 text-[var(--button-text)] font-bold py-3.5 transition-colors"
         >
-          Rate This Beer →
+          Rate This {itemLabel} →
         </button>
         {ratings.length > 0 && (
           <p className="text-[var(--text-muted)] text-sm text-center">
@@ -447,6 +464,7 @@ export default function SessionPlayPage() {
 
 function BeerRatingForm({
   beerNumber,
+  itemLabel,
   criteria,
   existing,
   beerReveals,
@@ -456,6 +474,7 @@ function BeerRatingForm({
   setInlineError,
 }: {
   beerNumber: number;
+  itemLabel: string;
   criteria: { id: string; label: string; emoji: string }[];
   existing: Rating | null;
   beerReveals: BeerReveal[];
@@ -515,7 +534,9 @@ function BeerRatingForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      <h1 className="text-3xl font-bold text-[var(--text-heading)]">Beer #{beerNumber}</h1>
+      <h1 className="text-3xl font-bold text-[var(--text-heading)]">
+        {itemLabel} #{beerNumber}
+      </h1>
 
       {criteria.map((criterion) => (
         <div key={criterion.id}>

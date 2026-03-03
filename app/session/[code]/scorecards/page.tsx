@@ -4,13 +4,13 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { createSupabaseClient } from "@/lib/supabase";
-import type { BeerReveal, Player, Rating } from "@/types/database";
+import type { BeerReveal, Player, Rating, Session } from "@/types/database";
 import { ScorecardsContent } from "./ScorecardsContent";
 
 export default function SessionScorecardsPage() {
   const params = useParams();
   const code = (params?.code as string) ?? "";
-  const [session, setSession] = useState<{ id: string; name: string; beer_count: number } | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [reveals, setReveals] = useState<BeerReveal[]>([]);
   const [players, setPlayers] = useState<Player[]>([]);
   const [ratings, setRatings] = useState<Rating[]>([]);
@@ -25,7 +25,7 @@ export default function SessionScorecardsPage() {
     const supabase = createSupabaseClient();
     supabase
       .from("sessions")
-      .select("id, name, beer_count")
+      .select("*")
       .eq("code", code)
       .single()
       .then(({ data: sess, error }) => {
@@ -78,6 +78,7 @@ export default function SessionScorecardsPage() {
           reveals={reveals}
           players={players}
           ratings={ratings}
+          tastingType={session.tasting_type}
         />
       </div>
     </div>

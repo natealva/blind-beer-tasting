@@ -6,7 +6,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
-import type { Rating } from "@/types/database";
+import { getItemLabel, isBeer } from "@/lib/tastingUtils";
+import type { Rating, Session } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
 const CHART_HEIGHT = 200;
@@ -61,8 +62,11 @@ function UserVsGroupChart({
             </div>
             <div style={{ display: "flex", gap: "12px", padding: "4px 8px 0" }}>
               {rows.map((row) => (
-                <div key={row.beerNumber} style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}>
-                  Beer #{row.beerNumber}
+                <div
+                  key={row.beerNumber}
+                  style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
+                >
+                  #{row.beerNumber}
                 </div>
               ))}
             </div>
@@ -78,6 +82,7 @@ export default function SessionDonePage() {
   const router = useRouter();
   const code = (params?.code as string) ?? "";
   const [playerName, setPlayerName] = useState("");
+  const [session, setSession] = useState<Session | null>(null);
   const [criteria, setCriteria] = useState(getCriteria(null));
   const [ratings, setRatings] = useState<Rating[]>([]);
   const [allSessionRatings, setAllSessionRatings] = useState<Rating[]>([]);
@@ -101,7 +106,7 @@ export default function SessionDonePage() {
     const supabase = createSupabaseClient();
     supabase
       .from("sessions")
-      .select("id, criteria")
+      .select("*")
       .eq("code", code)
       .single()
       .then(({ data: session, error }) => {
@@ -109,6 +114,7 @@ export default function SessionDonePage() {
           setLoading(false);
           return;
         }
+        setSession(session as Session);
         setCriteria(getCriteria(session));
         Promise.all([
           supabase.from("ratings").select("*").eq("session_id", session.id).eq("player_id", playerId),
@@ -123,11 +129,14 @@ export default function SessionDonePage() {
 
   const sortedRatings = useMemo(() => [...ratings].sort((a, b) => a.beer_number - b.beer_number), [ratings]);
 
+  // criteria is stable for a given session; we intentionally omit it from deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const withScores = useMemo(
     () => sortedRatings.filter((r) => criteria.every((c) => getCriterionScore(r, c.id) != null)),
     [sortedRatings]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const myOverallRanked = useMemo(
     () =>
       [...withScores]
@@ -136,6 +145,7 @@ export default function SessionDonePage() {
     [withScores]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const myRankedByCriterion = useMemo(
     () =>
       criteria.map((c) => ({
@@ -147,6 +157,7 @@ export default function SessionDonePage() {
     [withScores]
   );
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const groupAvgByBeer = useMemo(() => {
     const byCriterionAndBeer = new Map<string, Map<number, number[]>>();
     for (const c of criteria) {
@@ -170,6 +181,7 @@ export default function SessionDonePage() {
     };
   }, [allSessionRatings]);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   const chartRowsByCriterion = useMemo(
     () =>
       criteria.map((c) => ({
@@ -180,6 +192,8 @@ export default function SessionDonePage() {
       })),
     [withScores]
   );
+
+  const itemLabel = session ? getItemLabel(session) : "Beer";
 
   if (loading) {
     return (
@@ -195,14 +209,16 @@ export default function SessionDonePage() {
         <h1 className="text-3xl font-bold text-[var(--text-heading)] text-center">
           🎉 You&apos;re done, {playerName}!
         </h1>
-        <Image
-          src={gifSrc}
-          alt="Beer cheers"
-          width={120}
-          height={120}
-          unoptimized
-          className="mx-auto rounded-lg"
-        />
+        {session && isBeer(session) && (
+          <Image
+            src={gifSrc}
+            alt="Beer cheers"
+            width={120}
+            height={120}
+            unoptimized
+            className="mx-auto rounded-lg"
+          />
+        )}
         <div className="space-y-4">
           {sortedRatings.length === 0 ? (
             <p className="text-[var(--text-muted)] text-center">You haven&apos;t rated any beers yet.</p>
@@ -213,7 +229,9 @@ export default function SessionDonePage() {
                 className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] overflow-hidden"
               >
                 <div className="px-4 py-3 border-b border-[var(--border-subtle)]">
-                  <span className="font-mono font-bold text-[var(--amber-gold)]">Beer #{r.beer_number}</span>
+                  <span className="font-mono font-bold text-[var(--amber-gold)]">
+                    {itemLabel} #{r.beer_number}
+                  </span>
                 </div>
                 <div className="px-4 py-3 space-y-1 text-sm">
                   {criteria.map((c) => (
@@ -260,7 +278,7 @@ export default function SessionDonePage() {
                       key={row.beerNumber}
                       style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
                     >
-                      <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.combined.toFixed(1)}
+                      <span className="font-bold">{idx + 1}.</span> {itemLabel} #{row.beerNumber} — {row.combined.toFixed(1)}
                     </div>
                   ))}
                 </div>
@@ -276,7 +294,7 @@ export default function SessionDonePage() {
                         key={row.beerNumber}
                         style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
                       >
-                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.score.toFixed(1)}
+                      <span className="font-bold">{idx + 1}.</span> {itemLabel} #{row.beerNumber} — {row.score.toFixed(1)}
                       </div>
                     ))}
                   </div>
