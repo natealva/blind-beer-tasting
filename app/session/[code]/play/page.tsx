@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRandomBeerGif } from "@/lib/beerGifs";
+import { getCriteria, getCriterionScore } from "@/lib/criteriaUtils";
 import type { Rating, BeerReveal } from "@/types/database";
 
 const CHART_HEIGHT = 200;
@@ -132,7 +133,7 @@ export default function SessionPlayPage() {
     const supabase = createSupabaseClient();
     supabase
       .from("sessions")
-      .select("id, beer_count")
+      .select("id, beer_count, criteria")
       .eq("code", code)
       .single()
       .then(({ data: session, error: se }) => {
@@ -142,6 +143,7 @@ export default function SessionPlayPage() {
         }
         setSessionId(session.id);
         setBeerCount(session.beer_count);
+        setCriteria(getCriteria(session));
 
         supabase
           .from("beer_reveals")
@@ -178,39 +180,28 @@ export default function SessionPlayPage() {
   );
 
   const groupChartData = useMemo(() => {
-    const tasteByBeer = new Map<number, number[]>();
-    const crushByBeer = new Map<number, number[]>();
-    for (const r of allSessionRatings) {
-      if (r.taste != null) {
-        const arr = tasteByBeer.get(r.beer_number) ?? [];
-        arr.push(r.taste);
-        tasteByBeer.set(r.beer_number, arr);
+    return criteria.map((c) => {
+      const byBeer = new Map<number, number[]>();
+      for (const r of allSessionRatings) {
+        const s = getCriterionScore(r, c.id);
+        if (s != null) {
+          const arr = byBeer.get(r.beer_number) ?? [];
+          arr.push(s);
+          byBeer.set(r.beer_number, arr);
+        }
       }
-      if (r.crushability != null) {
-        const arr = crushByBeer.get(r.beer_number) ?? [];
-        arr.push(r.crushability);
-        crushByBeer.set(r.beer_number, arr);
-      }
-    }
-    const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
-    const tasteRows = Array.from(tasteByBeer.entries())
-      .filter(([beerNumber]) => playerRatedBeerNumbers.has(beerNumber))
-      .map(([beerNumber, vals]) => ({ beerNumber, groupAvg: avg(vals) }))
-      .sort((a, b) => a.beerNumber - b.beerNumber);
-    const crushRows = Array.from(crushByBeer.entries())
-      .filter(([beerNumber]) => playerRatedBeerNumbers.has(beerNumber))
-      .map(([beerNumber, vals]) => ({ beerNumber, groupAvg: avg(vals) }))
-      .sort((a, b) => a.beerNumber - b.beerNumber);
-    const getPlayerTaste = (beerNumber: number) => {
-      const r = ratings.find((x) => x.beer_number === beerNumber);
-      return r?.taste ?? null;
-    };
-    const getPlayerCrush = (beerNumber: number) => {
-      const r = ratings.find((x) => x.beer_number === beerNumber);
-      return r?.crushability ?? null;
-    };
-    return { tasteRows, crushRows, getPlayerTaste, getPlayerCrush };
-  }, [allSessionRatings, ratings, playerRatedBeerNumbers]);
+      const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
+      const rows = Array.from(byBeer.entries())
+        .filter(([beerNumber]) => playerRatedBeerNumbers.has(beerNumber))
+        .map(([beerNumber, vals]) => ({ beerNumber, groupAvg: avg(vals) }))
+        .sort((a, b) => a.beerNumber - b.beerNumber);
+      const getPlayerScore = (beerNumber: number) => {
+        const r = ratings.find((x) => x.beer_number === beerNumber);
+        return getCriterionScore(r ?? null, c.id);
+      };
+      return { criterion: c, rows, getPlayerScore };
+    });
+  }, [criteria, allSessionRatings, ratings, playerRatedBeerNumbers]);
 
   const hasAnyGroupRatings = allSessionRatings.length > 0;
   const showPickerCharts = ratings.length > 0;
@@ -233,8 +224,7 @@ export default function SessionPlayPage() {
   }
 
   async function handleSave(payload: {
-    crushability: number;
-    taste: number;
+    criteriaScores: Record<string, number>;
     guess: string | null;
     notes: string | null;
   }) {
@@ -242,13 +232,15 @@ export default function SessionPlayPage() {
     setInlineError(null);
     setSaving(true);
     const supabase = createSupabaseClient();
+    const { criteriaScores } = payload;
     await supabase.from("ratings").upsert(
       {
         session_id: sessionId,
         player_id: playerId,
         beer_number: selectedBeerNumber,
-        crushability: payload.crushability,
-        taste: payload.taste,
+        criteria_scores: criteriaScores,
+        taste: criteriaScores["taste"] ?? null,
+        crushability: criteriaScores["crushability"] ?? null,
         guess: payload.guess || null,
         notes: payload.notes || null,
       },
@@ -333,6 +325,7 @@ export default function SessionPlayPage() {
           <BeerRatingForm
             key={selectedBeerNumber}
             beerNumber={selectedBeerNumber}
+            criteria={criteria}
             existing={existingRating}
             beerReveals={beerReveals}
             onSave={handleSave}
@@ -434,18 +427,15 @@ export default function SessionPlayPage() {
             </p>
           ) : hasAnyGroupRatings ? (
             <>
-              <GroupBarChart
-                rows={groupChartData.tasteRows}
-                getGroupValue={(r) => r.groupAvg}
-                getPlayerScore={groupChartData.getPlayerTaste}
-                title="Group Taste Scores So Far"
-              />
-              <GroupBarChart
-                rows={groupChartData.crushRows}
-                getGroupValue={(r) => r.groupAvg}
-                getPlayerScore={groupChartData.getPlayerCrush}
-                title="Group Crushability Scores So Far"
-              />
+              {groupChartData.map(({ criterion, rows, getPlayerScore }) => (
+                <GroupBarChart
+                  key={criterion.id}
+                  rows={rows}
+                  getGroupValue={(r) => r.groupAvg}
+                  getPlayerScore={getPlayerScore}
+                  title={`Group ${criterion.label} Scores So Far`}
+                />
+              ))}
             </>
           ) : null}
         </section>
@@ -456,6 +446,7 @@ export default function SessionPlayPage() {
 
 function BeerRatingForm({
   beerNumber,
+  criteria,
   existing,
   beerReveals,
   onSave,
@@ -464,17 +455,25 @@ function BeerRatingForm({
   setInlineError,
 }: {
   beerNumber: number;
+  criteria: { id: string; label: string; emoji: string }[];
   existing: Rating | null;
   beerReveals: BeerReveal[];
-  onSave: (payload: { crushability: number; taste: number; guess: string | null; notes: string | null }) => void;
+  onSave: (payload: { criteriaScores: Record<string, number>; guess: string | null; notes: string | null }) => void;
   saving: boolean;
   inlineError: string | null;
   setInlineError: (s: string | null) => void;
 }) {
-  const [crushability, setCrushability] = useState<number | null>(existing?.crushability ?? null);
-  const [taste, setTaste] = useState<number | null>(existing?.taste ?? null);
+  const [criteriaScores, setCriteriaScores] = useState<Record<string, number | null>>({});
   const [guess, setGuess] = useState(existing?.guess ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
+
+  useEffect(() => {
+    const initial: Record<string, number | null> = {};
+    for (const c of criteria) {
+      initial[c.id] = getCriterionScore(existing ?? null, c.id);
+    }
+    setCriteriaScores(initial);
+  }, [criteria, existing]);
 
   const hasReveals = beerReveals.length > 0;
   const guessOptions = useMemo(
@@ -488,17 +487,26 @@ function BeerRatingForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setInlineError(null);
-    if (crushability == null || taste == null) {
-      setInlineError("Please select both Crushability and Taste (1–10) before saving.");
+    const missing = criteria.filter((c) => criteriaScores[c.id] == null);
+    if (missing.length > 0) {
+      setInlineError(`Please select a score (1–10) for every criterion: ${missing.map((c) => c.label).join(", ")}.`);
       return;
     }
-    if (crushability < 1 || crushability > 10 || taste < 1 || taste > 10) {
-      setInlineError("Crushability and Taste must be between 1 and 10.");
+    const outOfRange = criteria.some((c) => {
+      const s = criteriaScores[c.id];
+      return s != null && (s < 1 || s > 10);
+    });
+    if (outOfRange) {
+      setInlineError("All scores must be between 1 and 10.");
       return;
     }
+    const scores = criteria.reduce((acc, c) => {
+      const s = criteriaScores[c.id];
+      if (s != null) acc[c.id] = s;
+      return acc;
+    }, {} as Record<string, number>);
     onSave({
-      crushability,
-      taste,
+      criteriaScores: scores,
       guess: guess.trim() || null,
       notes: notes.trim() || null,
     });
@@ -508,45 +516,32 @@ function BeerRatingForm({
     <form onSubmit={handleSubmit} className="space-y-6">
       <h1 className="text-3xl font-bold text-[var(--text-heading)]">Beer #{beerNumber}</h1>
 
-      <div>
-        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Taste 👅</p>
-        <div className="flex flex-wrap gap-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setTaste(n)}
-              className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
-                taste === n
-                  ? "bg-[var(--amber-gold)] text-[var(--button-text)]"
-                  : "bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] hover:border-[var(--amber-gold)]"
-              }`}
-            >
-              {n}
-            </button>
-          ))}
+      {criteria.map((criterion) => (
+        <div key={criterion.id}>
+          <div className="text-[var(--text-muted)] text-sm font-medium mb-2">{criterion.emoji} {criterion.label}</div>
+          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
+              <button
+                key={n}
+                type="button"
+                onClick={() => setCriteriaScores((prev) => ({ ...prev, [criterion.id]: n }))}
+                style={{
+                  width: "40px",
+                  height: "40px",
+                  borderRadius: "8px",
+                  border: "2px solid #d97706",
+                  background: criteriaScores[criterion.id] === n ? "#f59e0b" : "white",
+                  fontWeight: criteriaScores[criterion.id] === n ? 700 : 400,
+                  color: "#451a03",
+                  cursor: "pointer",
+                }}
+              >
+                {n}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
-
-      <div>
-        <p className="text-[var(--text-muted)] text-sm font-medium mb-2">Crushability 🍺</p>
-        <div className="flex flex-wrap gap-2">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setCrushability(n)}
-              className={`w-10 h-10 rounded-lg font-semibold transition-colors ${
-                crushability === n
-                  ? "bg-[var(--amber-gold)] text-[var(--button-text)]"
-                  : "bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] hover:border-[var(--amber-gold)]"
-              }`}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-      </div>
+      ))}
 
       <div>
         <label className="block text-[var(--text-muted)] text-sm font-medium mb-1">Your guess</label>

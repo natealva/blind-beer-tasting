@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
+import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
 import type { BeerReveal, Player, Rating } from "@/types/database";
 import type { Criterion } from "@/lib/types";
 import { ScorecardsContent } from "../scorecards/ScorecardsContent";
@@ -14,15 +15,14 @@ const DEFAULT_CRITERIA: Criterion[] = [
   { id: "crushability", label: "Crushability", emoji: "🍺" },
 ];
 
-type ResultsSection = "overall" | "taste" | "crush" | "guesses" | "individual";
+type ResultsSection = "overall" | "guesses" | "individual" | string;
 
 type BeerStat = {
   beerNumber: number;
   name: string | null;
   ratings: Rating[];
-  avgCrush: number;
-  avgTaste: number;
   combined: number;
+  avgByCriterion: Record<string, number>;
 };
 
 type Props = {
@@ -52,7 +52,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [savingCriteria, setSavingCriteria] = useState(false);
   const [gifSrc, setGifSrc] = useState(BEER_GIFS[0]);
   const [editingRating, setEditingRating] = useState<Rating | null>(null);
-  const [editForm, setEditForm] = useState({ crushability: 0, taste: 0, guess: "", notes: "" });
+  const [editForm, setEditForm] = useState<{ criteriaScores: Record<string, number>; guess: string; notes: string }>({ criteriaScores: {}, guess: "", notes: "" });
   const [savingRating, setSavingRating] = useState(false);
   const [scorecardsReveals, setScorecardsReveals] = useState<BeerReveal[]>([]);
   const [scorecardsPlayers, setScorecardsPlayers] = useState<Player[]>([]);
@@ -82,8 +82,8 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       .eq("id", sessionId)
       .single()
       .then(({ data }) => {
-        const c = data?.criteria as Criterion[] | null | undefined;
-        if (Array.isArray(c) && c.length >= 2) setCriteria(c);
+        const c = getCriteria(data);
+        if (c.length >= 2) setCriteria(c);
       });
   }, [sessionId]);
 
@@ -256,8 +256,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
 
   const sections: { id: ResultsSection; label: string }[] = [
     { id: "overall", label: "Overall" },
-    { id: "taste", label: "Taste" },
-    { id: "crush", label: "Crushability" },
+    ...criteria.map((c) => ({ id: c.id as ResultsSection, label: c.label })),
     { id: "guesses", label: "Guess accuracy" },
     { id: "individual", label: "Individual ratings" },
   ];
@@ -318,7 +317,17 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     );
   }
 
-  function BeerRankTable({ rows, sortLabel }: { rows: BeerStat[]; sortLabel: string }) {
+  function BeerRankTable({
+    rows,
+    sortLabel,
+    sortKey,
+  }: {
+    rows: BeerStat[];
+    sortLabel: string;
+    sortKey: "combined" | string;
+  }) {
+    const sortValue = (row: BeerStat) =>
+      sortKey === "combined" ? row.combined : row.avgByCriterion[sortKey] ?? 0;
     return (
       <div className="rounded-lg bg-[var(--bg-card)] border border-[var(--border-amber)] overflow-hidden">
         <table className="w-full text-sm">
@@ -327,8 +336,9 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               <th className="px-3 py-2 font-medium">Rank</th>
               <th className="px-3 py-2 font-medium">Beer</th>
               <th className="px-3 py-2 font-medium">{sortLabel}</th>
-              <th className="px-3 py-2 font-medium">Avg crush</th>
-              <th className="px-3 py-2 font-medium">Avg taste</th>
+              {criteria.map((c) => (
+                <th key={c.id} className="px-3 py-2 font-medium">Avg {c.label}</th>
+              ))}
               <th className="px-3 py-2 font-medium">Ratings</th>
             </tr>
           </thead>
@@ -345,10 +355,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                   Beer #{row.beerNumber}{row.name ? ` · ${row.name}` : ""}
                 </td>
                 <td className="px-3 py-2 font-semibold text-[var(--amber-gold)]">
-                  {row.ratings.length ? (sortLabel === "Combined" ? row.combined.toFixed(1) : sortLabel === "Avg taste" ? row.avgTaste.toFixed(1) : row.avgCrush.toFixed(1)) : "—"}
+                  {row.ratings.length ? sortValue(row).toFixed(1) : "—"}
                 </td>
-                <td className="px-3 py-2">{row.ratings.length ? row.avgCrush.toFixed(1) : "—"}</td>
-                <td className="px-3 py-2">{row.ratings.length ? row.avgTaste.toFixed(1) : "—"}</td>
+                {criteria.map((c) => (
+                  <td key={c.id} className="px-3 py-2">
+                    {row.ratings.length ? (row.avgByCriterion[c.id] ?? 0).toFixed(1) : "—"}
+                  </td>
+                ))}
                 <td className="px-3 py-2">{row.ratings.length}</td>
               </tr>
             ))}
@@ -637,7 +650,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               {resultsSection === "overall" && (
                 <section>
                   <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Overall leaderboard</h2>
-                  <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by combined score (avg crush + avg taste) / 2</p>
+                  <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by combined score (average of all criteria)</p>
                   <div className="mb-4">
                     <ResultsBarChart
                       rows={overallRanked}
@@ -645,38 +658,25 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                       barColor="bg-amber-500"
                     />
                   </div>
-                  <BeerRankTable rows={overallRanked} sortLabel="Combined" />
+                  <BeerRankTable rows={overallRanked} sortLabel="Combined" sortKey="combined" />
                 </section>
               )}
 
-              {resultsSection === "taste" && (
-                <section>
-                  <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Taste rankings</h2>
-                  <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by average taste score</p>
-                  <div className="mb-4">
-                    <ResultsBarChart
-                      rows={tasteRanked}
-                      getValue={(row) => row.avgTaste}
-                      barColor="bg-amber-700"
-                    />
-                  </div>
-                  <BeerRankTable rows={tasteRanked} sortLabel="Avg taste" />
-                </section>
-              )}
-
-              {resultsSection === "crush" && (
-                <section>
-                  <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Crushability rankings</h2>
-                  <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by average crushability score</p>
-                  <div className="mb-4">
-                    <ResultsBarChart
-                      rows={crushRanked}
-                      getValue={(row) => row.avgCrush}
-                      barColor="bg-[var(--amber-gold)]"
-                    />
-                  </div>
-                  <BeerRankTable rows={crushRanked} sortLabel="Avg crush" />
-                </section>
+              {rankedByCriterion.map(({ criterion, ranked }) =>
+                resultsSection === criterion.id ? (
+                  <section key={criterion.id}>
+                    <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">{criterion.label} rankings</h2>
+                    <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by average {criterion.label.toLowerCase()} score</p>
+                    <div className="mb-4">
+                      <ResultsBarChart
+                        rows={ranked}
+                        getValue={(row) => row.avgByCriterion[criterion.id]}
+                        barColor="bg-amber-700"
+                      />
+                    </div>
+                    <BeerRankTable rows={ranked} sortLabel={`Avg ${criterion.label}`} sortKey={criterion.id} />
+                  </section>
+                ) : null
               )}
 
               {resultsSection === "guesses" && (

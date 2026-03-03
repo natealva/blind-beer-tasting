@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
+import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
 import type { Rating } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 
@@ -99,7 +100,7 @@ export default function SessionDonePage() {
     const supabase = createSupabaseClient();
     supabase
       .from("sessions")
-      .select("id")
+      .select("id, criteria")
       .eq("code", code)
       .single()
       .then(({ data: session, error }) => {
@@ -107,6 +108,7 @@ export default function SessionDonePage() {
           setLoading(false);
           return;
         }
+        setCriteria(getCriteria(session));
         Promise.all([
           supabase.from("ratings").select("*").eq("session_id", session.id).eq("player_id", playerId),
           supabase.from("ratings").select("*").eq("session_id", session.id),
@@ -121,70 +123,61 @@ export default function SessionDonePage() {
   const sortedRatings = useMemo(() => [...ratings].sort((a, b) => a.beer_number - b.beer_number), [ratings]);
 
   const withScores = useMemo(
-    () => sortedRatings.filter((r) => r.crushability != null && r.taste != null),
-    [sortedRatings]
+    () => sortedRatings.filter((r) => criteria.every((c) => getCriterionScore(r, c.id) != null)),
+    [sortedRatings, criteria]
   );
 
   const myOverallRanked = useMemo(
     () =>
       [...withScores]
-        .map((r) => ({
-          beerNumber: r.beer_number,
-          combined: ((r.crushability ?? 0) + (r.taste ?? 0)) / 2,
-        }))
+        .map((r) => ({ beerNumber: r.beer_number, combined: getOverallScore(r, criteria) }))
         .sort((a, b) => b.combined - a.combined),
-    [withScores]
+    [withScores, criteria]
   );
-  const myTasteRanked = useMemo(
+
+  const myRankedByCriterion = useMemo(
     () =>
-      [...withScores]
-        .map((r) => ({ beerNumber: r.beer_number, taste: r.taste ?? 0 }))
-        .sort((a, b) => b.taste - a.taste),
-    [withScores]
-  );
-  const myCrushRanked = useMemo(
-    () =>
-      [...withScores]
-        .map((r) => ({ beerNumber: r.beer_number, crush: r.crushability ?? 0 }))
-        .sort((a, b) => b.crush - a.crush),
-    [withScores]
+      criteria.map((c) => ({
+        criterion: c,
+        ranked: [...withScores]
+          .map((r) => ({ beerNumber: r.beer_number, score: getCriterionScore(r, c.id) ?? 0 }))
+          .sort((a, b) => b.score - a.score),
+      })),
+    [withScores, criteria]
   );
 
   const groupAvgByBeer = useMemo(() => {
-    const tasteByBeer = new Map<number, number[]>();
-    const crushByBeer = new Map<number, number[]>();
+    const byCriterionAndBeer = new Map<string, Map<number, number[]>>();
+    for (const c of criteria) {
+      byCriterionAndBeer.set(c.id, new Map());
+    }
     for (const r of allSessionRatings) {
-      if (r.taste != null) {
-        const arr = tasteByBeer.get(r.beer_number) ?? [];
-        arr.push(r.taste);
-        tasteByBeer.set(r.beer_number, arr);
-      }
-      if (r.crushability != null) {
-        const arr = crushByBeer.get(r.beer_number) ?? [];
-        arr.push(r.crushability);
-        crushByBeer.set(r.beer_number, arr);
+      for (const c of criteria) {
+        const s = getCriterionScore(r, c.id);
+        if (s != null) {
+          const byBeer = byCriterionAndBeer.get(c.id)!;
+          const arr = byBeer.get(r.beer_number) ?? [];
+          arr.push(s);
+          byBeer.set(r.beer_number, arr);
+        }
       }
     }
     const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
-    return {
-      taste: (n: number) => avg(tasteByBeer.get(n) ?? []),
-      crush: (n: number) => avg(crushByBeer.get(n) ?? []),
+    return (criterionId: string) => (beerNumber: number) => {
+      const byBeer = byCriterionAndBeer.get(criterionId);
+      return byBeer ? avg(byBeer.get(beerNumber) ?? []) : 0;
     };
-  }, [allSessionRatings]);
+  }, [allSessionRatings, criteria]);
 
-  const chartTasteRows = useMemo(
+  const chartRowsByCriterion = useMemo(
     () =>
-      withScores
-        .map((r) => ({ beerNumber: r.beer_number, userScore: r.taste ?? 0 }))
-        .sort((a, b) => a.beerNumber - b.beerNumber),
-    [withScores]
-  );
-  const chartCrushRows = useMemo(
-    () =>
-      withScores
-        .map((r) => ({ beerNumber: r.beer_number, userScore: r.crushability ?? 0 }))
-        .sort((a, b) => a.beerNumber - b.beerNumber),
-    [withScores]
+      criteria.map((c) => ({
+        criterion: c,
+        rows: withScores
+          .map((r) => ({ beerNumber: r.beer_number, userScore: getCriterionScore(r, c.id) ?? 0 }))
+          .sort((a, b) => a.beerNumber - b.beerNumber),
+      })),
+    [withScores, criteria]
   );
 
   if (loading) {
@@ -222,12 +215,11 @@ export default function SessionDonePage() {
                   <span className="font-mono font-bold text-[var(--amber-gold)]">Beer #{r.beer_number}</span>
                 </div>
                 <div className="px-4 py-3 space-y-1 text-sm">
-                  <p className="text-[var(--text-body)]">
-                    Taste: <span className="font-semibold text-[var(--amber-gold)]">{r.taste ?? "—"}</span>/10
-                  </p>
-                  <p className="text-[var(--text-body)]">
-                    Crushability: <span className="font-semibold text-[var(--amber-gold)]">{r.crushability ?? "—"}</span>/10
-                  </p>
+                  {criteria.map((c) => (
+                    <div key={c.id} className="text-[var(--text-body)]">
+                      {c.emoji} {c.label}: <span style={{ color: "#d97706", fontWeight: 700 }}>{getCriterionScore(r, c.id) ?? "—"}</span>/10
+                    </div>
+                  ))}
                   {r.guess && (
                     <p className="text-[var(--text-muted)]">
                       Your guess: <span className="text-[var(--text-body)]">{r.guess}</span>
@@ -259,7 +251,7 @@ export default function SessionDonePage() {
               >
                 <div
                   className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
-                  style={{ flexShrink: 0, minWidth: "160px" }}
+                  style={{ flexShrink: 0, minWidth: "140px" }}
                 >
                   <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Overall Top Beers</h3>
                   {myOverallRanked.map((row, idx) => (
@@ -271,52 +263,38 @@ export default function SessionDonePage() {
                     </div>
                   ))}
                 </div>
-                <div
-                  className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
-                  style={{ flexShrink: 0, minWidth: "160px" }}
-                >
-                  <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by Taste</h3>
-                  {myTasteRanked.map((row, idx) => (
-                    <div
-                      key={row.beerNumber}
-                      style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
-                    >
-                      <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.taste.toFixed(1)}
-                    </div>
-                  ))}
-                </div>
-                <div
-                  className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
-                  style={{ flexShrink: 0, minWidth: "160px" }}
-                >
-                  <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by Crushability</h3>
-                  {myCrushRanked.map((row, idx) => (
-                    <div
-                      key={row.beerNumber}
-                      style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
-                    >
-                      <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.crush.toFixed(1)}
-                    </div>
-                  ))}
-                </div>
+                {myRankedByCriterion.map(({ criterion, ranked }) => (
+                  <div
+                    key={criterion.id}
+                    className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
+                    style={{ flexShrink: 0, minWidth: "140px" }}
+                  >
+                    <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by {criterion.label}</h3>
+                    {ranked.map((row, idx) => (
+                      <div
+                        key={row.beerNumber}
+                        style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
+                      >
+                        <span className="font-bold">{idx + 1}.</span> Beer #{row.beerNumber} — {row.score.toFixed(1)}
+                      </div>
+                    ))}
+                  </div>
+                ))}
               </div>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">My Scores vs Group Average</h2>
               <div className="space-y-4">
-                <UserVsGroupChart
-                  rows={chartTasteRows}
-                  getValue={(r) => r.userScore}
-                  getGroupAvg={groupAvgByBeer.taste}
-                  title="How your taste ratings compare"
-                />
-                <UserVsGroupChart
-                  rows={chartCrushRows}
-                  getValue={(r) => r.userScore}
-                  getGroupAvg={groupAvgByBeer.crush}
-                  title="How your crushability ratings compare"
-                />
+                {chartRowsByCriterion.map(({ criterion, rows }) => (
+                  <UserVsGroupChart
+                    key={criterion.id}
+                    rows={rows}
+                    getValue={(r) => r.userScore}
+                    getGroupAvg={groupAvgByBeer(criterion.id)}
+                    title={`How your ${criterion.label} ratings compare`}
+                  />
+                ))}
               </div>
             </section>
           </>
