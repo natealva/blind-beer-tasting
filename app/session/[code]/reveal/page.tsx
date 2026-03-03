@@ -458,36 +458,56 @@ export default function SessionRevealPage() {
           <>
             <section>
               <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">My Rankings (Revealed)</h2>
-              <div style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
-                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3" style={{ minWidth: "130px", flex: 1 }}>
+              <div
+                style={{
+                  display: "flex",
+                  gap: "8px",
+                  overflowX: "auto",
+                  width: "100%",
+                  paddingBottom: "8px",
+                }}
+              >
+                <div
+                  className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
+                  style={{ flexShrink: 0, minWidth: "160px" }}
+                >
                   <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Overall Top Beers</h3>
-                  <ul className="text-sm space-y-1">
-                    {myOverallRanked.map((row, idx) => (
-                      <li key={row.beerNumber}>
-                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}
-                      </li>
-                    ))}
-                  </ul>
+                  {myOverallRanked.map((row, idx) => (
+                    <div
+                      key={row.beerNumber}
+                      style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
+                    >
+                      <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.combined.toFixed(1)}
+                    </div>
+                  ))}
                 </div>
-                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3" style={{ minWidth: "130px", flex: 1 }}>
+                <div
+                  className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
+                  style={{ flexShrink: 0, minWidth: "160px" }}
+                >
                   <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by Taste</h3>
-                  <ul className="text-sm space-y-1">
-                    {myTasteRanked.map((row, idx) => (
-                      <li key={row.beerNumber}>
-                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.taste.toFixed(1)}
-                      </li>
-                    ))}
-                  </ul>
+                  {myTasteRanked.map((row, idx) => (
+                    <div
+                      key={row.beerNumber}
+                      style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
+                    >
+                      <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.taste.toFixed(1)}
+                    </div>
+                  ))}
                 </div>
-                <div className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3" style={{ minWidth: "130px", flex: 1 }}>
+                <div
+                  className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
+                  style={{ flexShrink: 0, minWidth: "160px" }}
+                >
                   <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Top by Crushability</h3>
-                  <ul className="text-sm space-y-1">
-                    {myCrushRanked.map((row, idx) => (
-                      <li key={row.beerNumber}>
-                        <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.crush.toFixed(1)}
-                      </li>
-                    ))}
-                  </ul>
+                  {myCrushRanked.map((row, idx) => (
+                    <div
+                      key={row.beerNumber}
+                      style={{ whiteSpace: "nowrap", fontSize: "13px", marginBottom: "4px" }}
+                    >
+                      <span className="font-bold">{idx + 1}.</span> {row.name ?? `Beer #${row.beerNumber}`} — {row.crush.toFixed(1)}
+                    </div>
+                  ))}
                 </div>
               </div>
             </section>
