@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
-import { getCriteria, getCriterionScore } from "@/lib/criteriaUtils";
+import { getCriteria } from "@/lib/criteriaUtils";
 import { getItemLabel } from "@/lib/tastingUtils";
 import type { BeerReveal, Player, Rating, Session } from "@/types/database";
 import type { Criterion } from "@/lib/types";
@@ -62,6 +62,13 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
   const [scorecardsLoading, setScorecardsLoading] = useState(false);
   const [copyFeedback, setCopyFeedback] = useState(false);
   const [session, setSession] = useState<Session | null>(null);
+
+  const scoringCriteria = useMemo(() => criteria.slice(0, 2), [criteria]);
+
+  function getScoreForCriterionIndex(r: Rating, idx: 0 | 1): number | null {
+    if (idx === 0) return r.taste ?? null;
+    return r.crushability ?? null;
+  }
   useEffect(() => {
     setGifSrc(getRandomBeerGif());
   }, []);
@@ -227,13 +234,14 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     for (let n = 1; n <= beerCount; n++) {
       const beerRatings = resultsRatings.filter((r) => r.beer_number === n);
       const avgByCriterion: Record<string, number> = {};
-      for (const c of criteria) {
-        const scores = beerRatings.map((r) => getCriterionScore(r, c.id)).filter((s): s is number => s != null);
+      for (let idx = 0; idx < scoringCriteria.length; idx++) {
+        const c = scoringCriteria[idx];
+        const scores = beerRatings.map((r) => getScoreForCriterionIndex(r, idx as 0 | 1)).filter((s): s is number => s != null);
         avgByCriterion[c.id] = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
       }
       const combined =
-        criteria.length > 0
-          ? criteria.reduce((sum, c) => sum + avgByCriterion[c.id], 0) / criteria.length
+        scoringCriteria.length > 0
+          ? scoringCriteria.reduce((sum, c) => sum + (avgByCriterion[c.id] ?? 0), 0) / scoringCriteria.length
           : 0;
       const rev = resultsReveals.find((r) => r.beer_number === n);
       out.push({
@@ -245,16 +253,16 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       });
     }
     return out;
-  }, [beerCount, resultsRatings, resultsReveals, criteria]);
+  }, [beerCount, resultsRatings, resultsReveals, scoringCriteria]);
 
   const overallRanked = useMemo(() => [...resultsByBeer].sort((a, b) => b.combined - a.combined), [resultsByBeer]);
   const rankedByCriterion = useMemo(
     () =>
-      criteria.map((c) => ({
+      scoringCriteria.map((c) => ({
         criterion: c,
         ranked: [...resultsByBeer].sort((a, b) => (b.avgByCriterion[c.id] ?? 0) - (a.avgByCriterion[c.id] ?? 0)),
       })),
-    [resultsByBeer, criteria]
+    [resultsByBeer, scoringCriteria]
   );
 
   const revealByNumber = useMemo(() => new Map(resultsReveals.map((r) => [r.beer_number, r])), [resultsReveals]);
@@ -272,7 +280,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
 
   const sections: { id: ResultsSection; label: string }[] = [
     { id: "overall", label: "Overall" },
-    ...criteria.map((c) => ({ id: c.id as ResultsSection, label: c.label })),
+    ...scoringCriteria.map((c) => ({ id: c.id as ResultsSection, label: c.label })),
     { id: "guesses", label: "Guess accuracy" },
     { id: "individual", label: "Individual ratings" },
   ];
@@ -746,7 +754,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                             </span>
                             {name && <span className="text-[var(--text-heading)]">{name}</span>}
                             <span className="text-[var(--text-muted)] text-sm">
-                              {criteria.map((c, i) => (
+                              {scoringCriteria.map((c, i) => (
                                 <span key={c.id}>
                                   {i > 0 ? " · " : ""}
                                   Avg {c.label}: {beerRatings.length ? (avgByCriterion[c.id] ?? 0).toFixed(1) : "—"}
@@ -759,7 +767,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                               <thead>
                                 <tr className="text-left text-[var(--text-muted)] border-b border-[var(--border-subtle)]">
                                   <th className="px-3 py-2 font-medium">Player</th>
-                                  {criteria.map((c) => (
+                                  {scoringCriteria.map((c) => (
                                     <th key={c.id} className="px-3 py-2 font-medium">{c.label}</th>
                                   ))}
                                   <th className="px-3 py-2 font-medium">Guess</th>
@@ -770,7 +778,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                               <tbody className="divide-y divide-[var(--border-subtle)]">
                                 {beerRatings.length === 0 ? (
                                   <tr>
-                                    <td colSpan={3 + criteria.length} className="px-3 py-2 text-[var(--text-muted)]">No ratings yet</td>
+                                    <td colSpan={3 + scoringCriteria.length} className="px-3 py-2 text-[var(--text-muted)]">No ratings yet</td>
                                   </tr>
                                 ) : (
                                   beerRatings.map((r) => {
@@ -778,7 +786,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                     return (
                                       <tr key={r.id} className="text-[var(--text-body)]">
                                         {isEditing ? (
-                                          <td colSpan={3 + criteria.length} className="px-3 py-2 bg-amber-50/80">
+                                          <td colSpan={3 + scoringCriteria.length} className="px-3 py-2 bg-amber-50/80">
                                             <div className="flex flex-wrap gap-2 items-end">
                                               <div>
                                                 <label className="block text-[10px] text-[var(--text-muted)]">Crush</label>
@@ -859,8 +867,8 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                         ) : (
                                           <>
                                             <td className="px-3 py-2 font-medium">{playerMap.get(r.player_id)?.name ?? "—"}</td>
-                                            {criteria.map((c) => (
-                                              <td key={c.id} className="px-3 py-2">{getCriterionScore(r, c.id) ?? "—"}</td>
+                                            {scoringCriteria.map((c, idx) => (
+                                              <td key={c.id} className="px-3 py-2">{getScoreForCriterionIndex(r, idx as 0 | 1) ?? "—"}</td>
                                             ))}
                                             <td className="px-3 py-2 max-w-[120px] truncate" title={r.guess ?? ""}>{r.guess ?? "—"}</td>
                                             <td className="px-3 py-2 whitespace-normal break-words">{r.notes ?? "—"}</td>
@@ -870,8 +878,8 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                                                 onClick={() => {
                                                   setEditingRating(r);
                                                   setEditForm({
-                                                    crushability: getCriterionScore(r, "crushability") ?? 0,
-                                                    taste: getCriterionScore(r, "taste") ?? 0,
+                                                    crushability: r.crushability ?? 0,
+                                                    taste: r.taste ?? 0,
                                                     guess: r.guess ?? "",
                                                     notes: r.notes ?? "",
                                                   });

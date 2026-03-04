@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import html2canvas from "html2canvas";
 import { createSupabaseClient } from "@/lib/supabase";
-import { getCriteria, getCriterionScore, getOverallScore } from "@/lib/criteriaUtils";
+import { getCriteria } from "@/lib/criteriaUtils";
 import type { Rating, BeerReveal, Session } from "@/types/database";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import { getItemLabel, getItemEmoji, isBeer } from "@/lib/tastingUtils";
@@ -147,30 +147,38 @@ export default function SessionRevealPage() {
   const sortedRatings = useMemo(() => [...ratings].sort((a, b) => a.beer_number - b.beer_number), [ratings]);
   const revealByNumber = useMemo(() => new Map(reveals.map((r) => [r.beer_number, r])), [reveals]);
 
+  const scoringCriteria = useMemo(() => criteria.slice(0, 2), [criteria]);
+
+  function getScoreForCriterionIndex(r: Rating, idx: 0 | 1): number | null {
+    if (idx === 0) return r.taste ?? null;
+    return r.crushability ?? null;
+  }
+
+  function getOverallScoreSimple(r: Rating): number {
+    const t = r.taste;
+    const c = r.crushability;
+    if (t == null || c == null) return 0;
+    return (t + c) / 2;
+  }
+
   const hasRatings = useMemo(
     () =>
-      ratings &&
-      ratings.length > 0 &&
-      ratings.some((r: Record<string, unknown>) => {
-        if (r.criteria_scores && typeof r.criteria_scores === "object" && Object.keys(r.criteria_scores).length > 0) return true;
-        if (r.taste != null || r.crushability != null) return true;
-        return false;
-      }),
+      ratings.length > 0 && ratings.some((r) => r.taste != null || r.crushability != null),
     [ratings]
   );
 
   const withScores = useMemo(
-    () => sortedRatings.filter((r) => criteria.every((c) => getCriterionScore(r, c.id) != null)),
-    [sortedRatings, criteria]
+    () => sortedRatings.filter((r) => r.taste != null && r.crushability != null),
+    [sortedRatings]
   );
 
   // criteria is stable for a given session; we intentionally omit it from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const avgByCriterion = useMemo(() => {
-    return criteria.map((c) => ({
+    return scoringCriteria.map((c, idx) => ({
       criterion: c,
       avg: withScores.length
-        ? withScores.reduce((s, r) => s + (getCriterionScore(r, c.id) ?? 0), 0) / withScores.length
+        ? withScores.reduce((s, r) => s + (getScoreForCriterionIndex(r, idx as 0 | 1) ?? 0), 0) / withScores.length
         : 0,
     }));
   }, [withScores]);
@@ -181,37 +189,37 @@ export default function SessionRevealPage() {
         .map((r) => ({
           beerNumber: r.beer_number,
           name: revealByNumber.get(r.beer_number)?.beer_name ?? null,
-          combined: getOverallScore(r, criteria),
+          combined: getOverallScoreSimple(r),
         }))
         .sort((a, b) => b.combined - a.combined),
-    [withScores, criteria, revealByNumber]
+    [withScores, revealByNumber]
   );
 
   const myRankedByCriterion = useMemo(
     () =>
-      criteria.map((c) => ({
+      scoringCriteria.map((c, idx) => ({
         criterion: c,
         ranked: [...withScores]
           .map((r) => ({
             beerNumber: r.beer_number,
             name: revealByNumber.get(r.beer_number)?.beer_name ?? null,
-            score: getCriterionScore(r, c.id) ?? 0,
+            score: getScoreForCriterionIndex(r, idx as 0 | 1) ?? 0,
           }))
           .sort((a, b) => b.score - a.score),
       })),
-    [withScores, criteria, revealByNumber]
+    [withScores, scoringCriteria, revealByNumber]
   );
 
   const groupAvgByBeer = useMemo(() => {
-    const byCriterionAndBeer = new Map<string, Map<number, number[]>>();
-    for (const c of criteria) {
-      byCriterionAndBeer.set(c.id, new Map());
+    const byCriterionAndBeer = new Map<number, Map<number, number[]>>();
+    for (let idx = 0; idx < scoringCriteria.length; idx++) {
+      byCriterionAndBeer.set(idx, new Map());
     }
     for (const r of allSessionRatings) {
-      for (const c of criteria) {
-        const s = getCriterionScore(r, c.id);
+      for (let idx = 0; idx < scoringCriteria.length; idx++) {
+        const s = getScoreForCriterionIndex(r, idx as 0 | 1);
         if (s != null) {
-          const byBeer = byCriterionAndBeer.get(c.id)!;
+          const byBeer = byCriterionAndBeer.get(idx)!;
           const arr = byBeer.get(r.beer_number) ?? [];
           arr.push(s);
           byBeer.set(r.beer_number, arr);
@@ -219,27 +227,27 @@ export default function SessionRevealPage() {
       }
     }
     const avg = (arr: number[]) => (arr.length ? arr.reduce((s, n) => s + n, 0) / arr.length : 0);
-    return (criterionId: string) => (beerNumber: number) => {
-      const byBeer = byCriterionAndBeer.get(criterionId);
+    return (criterionIndex: number) => (beerNumber: number) => {
+      const byBeer = byCriterionAndBeer.get(criterionIndex);
       return byBeer ? avg(byBeer.get(beerNumber) ?? []) : 0;
     };
-  }, [allSessionRatings, criteria]);
+  }, [allSessionRatings, scoringCriteria]);
 
   const beerNumbersWithGroupRatings = useMemo(() => {
     const set = new Set<number>();
     for (const r of allSessionRatings) {
-      if (criteria.some((c) => getCriterionScore(r, c.id) != null)) set.add(r.beer_number);
+      if (r.taste != null || r.crushability != null) set.add(r.beer_number);
     }
     return Array.from(set).sort((a, b) => a - b);
-  }, [allSessionRatings, criteria]);
+  }, [allSessionRatings]);
 
   const groupOverallRanked = useMemo(
     () =>
       beerNumbersWithGroupRatings
         .map((beerNumber) => {
           const combined =
-            criteria.length > 0
-              ? criteria.reduce((sum, c) => sum + groupAvgByBeer(c.id)(beerNumber), 0) / criteria.length
+            scoringCriteria.length > 0
+              ? scoringCriteria.reduce((sum, _c, idx) => sum + groupAvgByBeer(idx)(beerNumber), 0) / scoringCriteria.length
               : 0;
           const name = revealByNumber.get(beerNumber)?.beer_name ?? `${itemLabel} #${beerNumber}`;
           return { beerNumber, name, combined };
@@ -247,34 +255,34 @@ export default function SessionRevealPage() {
         .sort((a, b) => b.combined - a.combined),
     // criteria and itemLabel are stable per session; omit from deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber]
+    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber, scoringCriteria]
   );
 
   const groupRankedByCriterion = useMemo(
     () =>
-      criteria.map((c) => ({
+      scoringCriteria.map((c, idx) => ({
         criterion: c,
         ranked: beerNumbersWithGroupRatings
           .map((beerNumber) => ({
             beerNumber,
             name: revealByNumber.get(beerNumber)?.beer_name ?? `${itemLabel} #${beerNumber}`,
-            score: groupAvgByBeer(c.id)(beerNumber),
+            score: groupAvgByBeer(idx)(beerNumber),
           }))
           .sort((a, b) => b.score - a.score),
       })),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber]
+    [beerNumbersWithGroupRatings, groupAvgByBeer, revealByNumber, scoringCriteria]
   );
 
   const chartRowsByCriterion = useMemo(
     () =>
-      criteria.map((c) => ({
+      scoringCriteria.map((c, idx) => ({
         criterion: c,
         rows: withScores
-          .map((r) => ({ beerNumber: r.beer_number, userScore: getCriterionScore(r, c.id) ?? 0 }))
+          .map((r) => ({ beerNumber: r.beer_number, userScore: getScoreForCriterionIndex(r, idx as 0 | 1) ?? 0 }))
           .sort((a, b) => a.beerNumber - b.beerNumber),
       })),
-    [withScores, criteria]
+    [withScores, scoringCriteria]
   );
 
   const myGuessesForScorecard = useMemo(
@@ -441,11 +449,14 @@ export default function SessionRevealPage() {
                     )}
                   </div>
                   <div className="px-4 py-3 space-y-1 text-sm">
-                    {criteria.map((c) => (
-                      <p key={c.id} className="text-[var(--text-body)]">
-                        {c.emoji} {c.label}: <span className="font-semibold text-[var(--amber-gold)]">{getCriterionScore(r, c.id) ?? "—"}</span>/10
-                      </p>
-                    ))}
+                    {scoringCriteria.map((c, idx) => {
+                      const score = getScoreForCriterionIndex(r, idx as 0 | 1);
+                      return (
+                        <p key={c.id} className="text-[var(--text-body)]">
+                          {c.emoji} {c.label}: <span className="font-semibold text-[var(--amber-gold)]">{score ?? "—"}</span>/10
+                        </p>
+                      );
+                    })}
                     {r.guess && (
                       <p className="text-[var(--text-muted)]">
                         Your guess: <span className="text-[var(--text-body)]">{r.guess}</span>
@@ -527,12 +538,12 @@ export default function SessionRevealPage() {
             <section>
               <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">My Scores vs Group Average</h2>
               <div className="space-y-4">
-                {chartRowsByCriterion.map(({ criterion, rows }) => (
+                {chartRowsByCriterion.map(({ criterion, rows }, idx) => (
                   <UserVsGroupChart
                     key={criterion.id}
                     rows={rows}
                     getValue={(r) => r.userScore}
-                    getGroupAvg={groupAvgByBeer(criterion.id)}
+                    getGroupAvg={groupAvgByBeer(idx)}
                     title={`How your ${criterion.label} ratings compare`}
                     getBeerName={(n) => revealByNumber.get(n)?.beer_name ?? null}
                   />

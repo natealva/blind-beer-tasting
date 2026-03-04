@@ -6,7 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { getRandomBeerGif } from "@/lib/beerGifs";
-import { getCriteria, getCriterionScore } from "@/lib/criteriaUtils";
+import { getCriteria } from "@/lib/criteriaUtils";
 import { getItemLabel, isBeer } from "@/lib/tastingUtils";
 import type { Rating, BeerReveal, Session } from "@/types/database";
 
@@ -191,13 +191,21 @@ export default function SessionPlayPage() {
     [ratings]
   );
 
+  const scoringCriteria = useMemo(() => criteria.slice(0, 2), [criteria]);
+
+  function getScoreForCriterionIndex(r: Rating | null, idx: 0 | 1): number | null {
+    if (!r) return null;
+    if (idx === 0) return r.taste ?? null;
+    return r.crushability ?? null;
+  }
+
   // criteria is stable for a given session; we intentionally omit it from deps
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const groupChartData = useMemo(() => {
-    return criteria.map((c) => {
+    return scoringCriteria.map((c, idx) => {
       const byBeer = new Map<number, number[]>();
       for (const r of allSessionRatings) {
-        const s = getCriterionScore(r, c.id);
+        const s = getScoreForCriterionIndex(r, idx as 0 | 1);
         if (s != null) {
           const arr = byBeer.get(r.beer_number) ?? [];
           arr.push(s);
@@ -211,7 +219,7 @@ export default function SessionPlayPage() {
         .sort((a, b) => a.beerNumber - b.beerNumber);
       const getPlayerScore = (beerNumber: number) => {
         const r = ratings.find((x) => x.beer_number === beerNumber);
-        return getCriterionScore(r ?? null, c.id);
+        return getScoreForCriterionIndex(r ?? null, idx as 0 | 1);
       };
       return { criterion: c, rows, getPlayerScore };
     });
@@ -238,47 +246,38 @@ export default function SessionPlayPage() {
   }
 
   async function handleSave(payload: {
-    criteriaScores: Record<string, number>;
+    tasteScore: number | null;
+    crushScore: number | null;
     guess: string | null;
     notes: string | null;
   }) {
     if (!sessionId || !playerId || selectedBeerNumber == null) return;
-    const { criteriaScores, guess, notes } = payload;
-    // eslint-disable-next-line no-console
-    console.log("[play] criteria loaded for session:", criteria);
-    const allFilled = criteria.every((c) => criteriaScores[c.id] != null);
-    if (!allFilled) {
-      setInlineError("Please rate all criteria before saving.");
-      return;
-    }
+    const { tasteScore, crushScore, guess, notes } = payload;
     setInlineError(null);
     setSaving(true);
     const supabase = createSupabaseClient();
-    const row = {
-      session_id: sessionId,
-      player_id: playerId,
-      beer_number: selectedBeerNumber,
-      criteria_scores: criteriaScores,
-      taste: criteriaScores["taste"] ?? null,
-      crushability: criteriaScores["crushability"] ?? null,
-      guess: guess || null,
-      notes: notes || null,
-    };
-    // eslint-disable-next-line no-console
-    console.log("Saving rating with data:", {
-      session_id: sessionId,
-      player_id: playerId,
-      beer_number: selectedBeerNumber,
-      criteria_scores: criteriaScores,
-      taste: criteriaScores["taste"] ?? null,
-      crushability: criteriaScores["crushability"] ?? null,
-    });
-    const { data: savedData, error: saveError } = await supabase
+    const { error } = await supabase
       .from("ratings")
-      .upsert(row, { onConflict: "player_id,beer_number" })
-      .select();
-    // eslint-disable-next-line no-console
-    console.log("Save result:", savedData, "Error:", saveError);
+      .upsert(
+        {
+          session_id: sessionId,
+          player_id: playerId,
+          beer_number: selectedBeerNumber,
+          taste: tasteScore,
+          crushability: crushScore,
+          guess: guess || null,
+          notes: notes || null,
+        },
+        { onConflict: "player_id,beer_number" }
+      );
+
+    if (error) {
+      // eslint-disable-next-line no-console
+      console.error("Save error:", error);
+      alert("Error saving: " + error.message);
+      setSaving(false);
+      return;
+    }
     const { data: updated } = await supabase
       .from("ratings")
       .select("*")
@@ -360,7 +359,7 @@ export default function SessionPlayPage() {
             key={selectedBeerNumber}
             beerNumber={selectedBeerNumber}
             itemLabel={itemLabel}
-            criteria={criteria}
+            criteria={scoringCriteria}
             existing={existingRating}
             beerReveals={beerReveals}
             onSave={handleSave}
@@ -501,21 +500,21 @@ function BeerRatingForm({
   criteria: { id: string; label: string; emoji: string }[];
   existing: Rating | null;
   beerReveals: BeerReveal[];
-  onSave: (payload: { criteriaScores: Record<string, number>; guess: string | null; notes: string | null }) => void;
+  onSave: (payload: { tasteScore: number | null; crushScore: number | null; guess: string | null; notes: string | null }) => void;
   saving: boolean;
   inlineError: string | null;
   setInlineError: (s: string | null) => void;
 }) {
-  const [criteriaScores, setCriteriaScores] = useState<Record<string, number | null>>({});
+  const [tasteScore, setTasteScore] = useState<number | null>(null);
+  const [crushScore, setCrushScore] = useState<number | null>(null);
   const [guess, setGuess] = useState(existing?.guess ?? "");
   const [notes, setNotes] = useState(existing?.notes ?? "");
 
   useEffect(() => {
-    const initial: Record<string, number | null> = {};
-    for (const c of criteria) {
-      initial[c.id] = getCriterionScore(existing ?? null, c.id);
-    }
-    setCriteriaScores(initial);
+    setTasteScore(existing?.taste ?? null);
+    setCrushScore(existing?.crushability ?? null);
+    setGuess(existing?.guess ?? "");
+    setNotes(existing?.notes ?? "");
   }, [criteria, existing]);
 
   const hasReveals = beerReveals.length > 0;
@@ -530,29 +529,11 @@ function BeerRatingForm({
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setInlineError(null);
-    const missing = criteria.filter((c) => criteriaScores[c.id] == null);
-    if (missing.length > 0) {
-      setInlineError(`Please select a score (1–10) for every criterion: ${missing.map((c) => c.label).join(", ")}.`);
+    if (tasteScore == null || crushScore == null) {
+      setInlineError("Please select a score (1–10) for both criteria before saving.");
       return;
     }
-    const outOfRange = criteria.some((c) => {
-      const s = criteriaScores[c.id];
-      return s != null && (s < 1 || s > 10);
-    });
-    if (outOfRange) {
-      setInlineError("All scores must be between 1 and 10.");
-      return;
-    }
-    const scores = criteria.reduce((acc, c) => {
-      const s = criteriaScores[c.id];
-      if (s != null) acc[c.id] = s;
-      return acc;
-    }, {} as Record<string, number>);
-    onSave({
-      criteriaScores: scores,
-      guess: guess.trim() || null,
-      notes: notes.trim() || null,
-    });
+    onSave({ tasteScore, crushScore, guess: guess.trim() || null, notes: notes.trim() || null });
   }
 
   return (
@@ -561,7 +542,7 @@ function BeerRatingForm({
         {itemLabel} #{beerNumber}
       </h1>
 
-      {criteria.map((criterion) => (
+      {criteria.map((criterion, idx) => (
         <div key={criterion.id}>
           <div className="text-[var(--text-muted)] text-sm font-medium mb-2">{criterion.emoji} {criterion.label}</div>
           <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
@@ -569,14 +550,17 @@ function BeerRatingForm({
               <button
                 key={n}
                 type="button"
-                onClick={() => setCriteriaScores((prev) => ({ ...prev, [criterion.id]: n }))}
+                onClick={() => {
+                  if (idx === 0) setTasteScore(n);
+                  if (idx === 1) setCrushScore(n);
+                }}
                 style={{
                   width: "40px",
                   height: "40px",
                   borderRadius: "8px",
                   border: "2px solid #d97706",
-                  background: criteriaScores[criterion.id] === n ? "#f59e0b" : "white",
-                  fontWeight: criteriaScores[criterion.id] === n ? 700 : 400,
+                  background: (idx === 0 ? tasteScore : crushScore) === n ? "#f59e0b" : "white",
+                  fontWeight: (idx === 0 ? tasteScore : crushScore) === n ? 700 : 400,
                   color: "#451a03",
                   cursor: "pointer",
                 }}
