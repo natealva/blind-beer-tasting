@@ -42,7 +42,7 @@ function UserVsGroupChart({
           <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
             <div style={{ position: "relative", height: "200px", display: "flex", alignItems: "flex-end", gap: "12px", padding: "0 8px" }}>
               {[0, 40, 80, 120, 160].map((topPx) => (
-                <div key={topPx} style={{ position: "absolute", top: `${topPx}px`, left: 0, right: 0, height: "1px", background: "rgba(217,119,6,0.15)", pointerEvents: "none" }} />
+                <div key={topPx} style={{ position: "absolute", top: `${topPx}px`, left: 0, right: 0, height: "1px", background: "rgba(99,102,241,0.1)", pointerEvents: "none" }} />
               ))}
               {rows.map((row) => {
                 const userScore = getValue(row);
@@ -53,7 +53,7 @@ function UserVsGroupChart({
                 return (
                   <div key={row.beerNumber} style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}>
                     {groupLineBottomPx != null && groupLineBottomPx > 0 && (
-                      <div style={{ position: "absolute", bottom: `${groupLineBottomPx}px`, left: 0, right: 0, height: "2px", background: "#7f1d1d", zIndex: 2, pointerEvents: "none" }} title={`Group avg: ${groupAvg.toFixed(1)}`} />
+                      <div style={{ position: "absolute", bottom: `${groupLineBottomPx}px`, left: 0, right: 0, height: "2px", background: "#6b7280", zIndex: 2, pointerEvents: "none" }} title={`Group avg: ${groupAvg.toFixed(1)}`} />
                     )}
                     <div style={{ position: "absolute", bottom: 0, left: 0, height: `${barHeightPx}px`, width: `${BAR_WIDTH}px`, background: barColor, borderRadius: "4px 4px 0 0", minHeight: barHeightPx > 0 ? 2 : 0 }} />
                   </div>
@@ -289,7 +289,7 @@ export default function SessionDonePage() {
                   className="rounded-xl bg-[var(--bg-card)] border border-[var(--border-amber)] p-3"
                   style={{ flexShrink: 0, minWidth: "140px" }}
                 >
-                  <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">My Overall Top Beers</h3>
+                  <h3 className="text-sm font-bold text-[var(--text-heading)] mb-2">{`My Overall Top ${itemLabel}s`}</h3>
                   {myOverallRanked.map((row, idx) => (
                     <div
                       key={row.beerNumber}
@@ -349,14 +349,14 @@ export default function SessionDonePage() {
         </Link>
         <Link
           href="/"
-          className="block w-full text-center rounded-xl bg-white border-2 border-[var(--border-amber)] hover:bg-amber-50 text-[var(--text-heading)] font-bold py-3.5 transition-colors"
+          className="block w-full text-center rounded-xl bg-white border-2 border-[var(--border-amber)] hover:bg-indigo-50 text-[var(--text-heading)] font-bold py-3.5 transition-colors"
         >
           Back to Home
         </Link>
 
         <Link
           href={`/session/${code}/reveal`}
-          className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors border-2 border-amber-800"
+          className="block w-full text-center rounded-xl bg-[var(--amber-gold)] hover:bg-[var(--amber-gold-hover)] text-[var(--button-text)] font-bold py-3.5 transition-colors border-2 border-indigo-700"
         >
           🎉 Ready for the big reveal?
         </Link>

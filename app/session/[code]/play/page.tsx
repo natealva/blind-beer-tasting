@@ -54,7 +54,7 @@ function GroupBarChart({
           <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
             <div style={{ position: "relative", height: "200px", display: "flex", alignItems: "flex-end", gap: "12px", padding: "0 8px" }}>
               {[0, 40, 80, 120, 160].map((topPx) => (
-                <div key={topPx} style={{ position: "absolute", top: `${topPx}px`, left: 0, right: 0, height: "1px", background: "rgba(217,119,6,0.15)", pointerEvents: "none" }} />
+                <div key={topPx} style={{ position: "absolute", top: `${topPx}px`, left: 0, right: 0, height: "1px", background: "rgba(99,102,241,0.1)", pointerEvents: "none" }} />
               ))}
               {rows.map((row) => {
                 const groupAvg = getGroupValue(row);
@@ -67,7 +67,7 @@ function GroupBarChart({
                 return (
                   <div key={row.beerNumber} style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}>
                     {hasPlayerRating && groupLineBottomPx != null && groupLineBottomPx > 0 && (
-                      <div style={{ position: "absolute", bottom: `${groupLineBottomPx}px`, left: 0, right: 0, height: "2px", background: "#7f1d1d", zIndex: 2, pointerEvents: "none" }} title={`Group avg: ${groupAvg.toFixed(1)}`} />
+                      <div style={{ position: "absolute", bottom: `${groupLineBottomPx}px`, left: 0, right: 0, height: "2px", background: "#6b7280", zIndex: 2, pointerEvents: "none" }} title={`Group avg: ${groupAvg.toFixed(1)}`} />
                     )}
                     <div style={{ position: "absolute", bottom: 0, left: 0, height: `${barHeightPx}px`, width: `${BAR_WIDTH}px`, background: barColor, borderRadius: "4px 4px 0 0", minHeight: barHeightPx > 0 ? 2 : 0 }} />
                   </div>
@@ -322,7 +322,7 @@ export default function SessionPlayPage() {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center justify-center" style={{ textAlign: "center", padding: "40px 20px" }}>
         <div style={{ fontSize: "48px" }}>🔒</div>
-        <h2 style={{ fontSize: "24px", fontWeight: 800, color: "#111827", margin: "16px 0 8px" }}>
+        <h2 style={{ fontSize: "24px", fontWeight: 800, color: "#ffffff", margin: "16px 0 8px" }}>
           Your answers are locked
         </h2>
         <p style={{ color: "#374151", marginBottom: "24px" }}>
@@ -331,7 +331,7 @@ export default function SessionPlayPage() {
         <Link
           href={`/session/${code}/reveal`}
           className="block w-full max-w-[320px] mx-auto rounded-xl font-bold py-3.5 text-center transition-colors"
-          style={{ background: "#6366f1", color: "#111827", padding: "14px 24px", borderRadius: "12px", fontWeight: 700, textDecoration: "none" }}
+          style={{ background: "#6366f1", color: "#ffffff", padding: "14px 24px", borderRadius: "12px", fontWeight: 700, textDecoration: "none" }}
         >
           View My Results →
         </Link>
@@ -377,10 +377,10 @@ export default function SessionPlayPage() {
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
         <div className="w-full max-w-[480px] mx-auto space-y-6 text-center">
           <h1 className="text-3xl font-bold text-[var(--text-heading)]">
-            🎉 You&apos;ve tasted all {beerCount} beers!
+            🎉 You&apos;ve tasted all {beerCount} {itemLabel.toLowerCase()}s!
           </h1>
           <p className="text-[var(--text-muted)]">
-            Nice work. You can keep rating to update scores or head to your summary.
+            Nice work. You can rate any {itemLabel.toLowerCase()} to update your score.
           </p>
           <div className="flex flex-col gap-3">
             <button
@@ -390,7 +390,7 @@ export default function SessionPlayPage() {
                 setCompletionDismissed(true);
                 fetchAllSessionRatings();
               }}
-              className="w-full rounded-xl bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] font-bold py-3.5 transition-colors hover:bg-amber-50"
+              className="w-full rounded-xl bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] font-bold py-3.5 transition-colors hover:bg-indigo-50"
             >
               Keep Rating →
             </button>
@@ -450,7 +450,7 @@ export default function SessionPlayPage() {
         </button>
         {ratings.length > 0 && (
           <p className="text-[var(--text-muted)] text-sm text-center">
-            You&apos;ve submitted {ratings.length} rating{ratings.length !== 1 ? "s" : ""}. You can rate any beer again to update.
+            You&apos;ve submitted {ratings.length} rating{ratings.length !== 1 ? "s" : ""}. You can rate any {itemLabel.toLowerCase()} to update your score.
           </p>
         )}
         <p className="text-center">
@@ -561,7 +561,7 @@ function BeerRatingForm({
                   border: "2px solid #6366f1",
                   background: (idx === 0 ? tasteScore : crushScore) === n ? "#6366f1" : "white",
                   fontWeight: (idx === 0 ? tasteScore : crushScore) === n ? 700 : 400,
-                  color: "#111827",
+                  color: "#ffffff",
                   cursor: "pointer",
                 }}
               >
@@ -592,7 +592,7 @@ function BeerRatingForm({
             type="text"
             value={guess}
             onChange={(e) => setGuess(e.target.value)}
-            placeholder="e.g. IPA from Local Brewery"
+            placeholder="Your best guess…"
             className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
           />
         )}

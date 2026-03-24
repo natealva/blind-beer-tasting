@@ -9,7 +9,7 @@ import { generateSessionCode } from "@/lib/code";
 export default function CreatePage() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [beerCount, setBeerCount] = useState(13);
+  const [beerCount, setBeerCount] = useState(6);
   const [tastingType, setTastingType] = useState("Beer");
   const [customTastingType, setCustomTastingType] = useState("");
   const [adminPassword, setAdminPassword] = useState("");
@@ -26,18 +26,41 @@ export default function CreatePage() {
     const maxAttempts = 10;
     const baseType = tastingType === "Custom..." ? (customTastingType.trim() || "Beer") : tastingType;
     for (let i = 0; i < maxAttempts; i++) {
-      const { data, error: insertError } = await supabase
-        .from("sessions")
-        .insert({
-          code,
-          name: name.trim() || "Blind Tasting",
-          beer_count: Math.min(99, Math.max(1, beerCount)),
-          admin_password: adminPassword || "admin",
-          tasting_type: baseType,
-        })
-        .select("id, code")
-        .single();
+      let data:
+        | {
+            id: string;
+            code: string;
+          }
+        | null = null;
+      let insertError: { code?: string; message: string } | null = null;
+      try {
+        const result = await supabase
+          .from("sessions")
+          .insert({
+            code,
+            name: name.trim() || "Blind Tasting",
+            beer_count: Math.min(99, Math.max(1, beerCount)),
+            admin_password: adminPassword || "admin",
+            tasting_type: baseType,
+          })
+          .select("id, code")
+          .single();
+        data = result.data;
+        insertError = result.error as { code?: string; message: string } | null;
+      } catch (error: unknown) {
+        if (error instanceof TypeError && error.message === "Failed to fetch") {
+          setError("Cannot connect to database. The Supabase project may be paused — visit supabase.com to resume it, or check Vercel environment variables.");
+          setLoading(false);
+          return;
+        }
+        throw error;
+      }
       if (!insertError) {
+        if (!data) {
+          setError("Could not create session. Try again.");
+          setLoading(false);
+          return;
+        }
         const pwd = adminPassword || "admin";
         if (typeof window !== "undefined") {
           sessionStorage.setItem(`blind_beer_admin_${data.code}`, pwd);
@@ -78,7 +101,7 @@ export default function CreatePage() {
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Nate's Beer Night"
+                  placeholder="e.g. Friday Night Tasting"
                   className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
                 />
               </div>
@@ -121,7 +144,7 @@ export default function CreatePage() {
                   min={1}
                   max={99}
                   value={beerCount}
-                  onChange={(e) => setBeerCount(parseInt(e.target.value, 10) || 13)}
+                  onChange={(e) => setBeerCount(parseInt(e.target.value, 10) || 1)}
                   className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
                 />
               </div>
