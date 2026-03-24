@@ -6,7 +6,7 @@ import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase";
 import { BEER_GIFS, getRandomBeerGif } from "@/lib/beerGifs";
 import { getCriteria } from "@/lib/criteriaUtils";
-import { getItemLabel } from "@/lib/tastingUtils";
+import { getItemLabel, isBeer } from "@/lib/tastingUtils";
 import type { BeerReveal, Player, Rating, Session } from "@/types/database";
 import type { Criterion } from "@/lib/types";
 import { ScorecardsContent } from "../scorecards/ScorecardsContent";
@@ -359,7 +359,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
           <thead>
             <tr className="bg-[var(--progress-track)] text-left text-[var(--text-muted)]">
               <th className="px-3 py-2 font-medium">Rank</th>
-              <th className="px-3 py-2 font-medium">Beer</th>
+              <th className="px-3 py-2 font-medium">Sample</th>
               <th className="px-3 py-2 font-medium">{sortLabel}</th>
               {criteria.map((c) => (
                 <th key={c.id} className="px-3 py-2 font-medium">Avg {c.label}</th>
@@ -403,14 +403,16 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
     <div className="max-w-3xl mx-auto px-6 py-8">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <Image
-            src={gifSrc}
-            alt="Beer cheers"
-            width={80}
-            height={80}
-            unoptimized
-            className="rounded-lg shrink-0"
-          />
+          {session && isBeer(session) && (
+            <Image
+              src={gifSrc}
+              alt="Beer cheers"
+              width={80}
+              height={80}
+              unoptimized
+              className="rounded-lg shrink-0"
+            />
+          )}
           <div>
             <h1 className="text-2xl font-bold text-[var(--text-heading)]">{sessionName}</h1>
             <p className="text-[var(--text-muted)] text-sm">Code: <span className="font-mono">{code}</span> · Share this so players can join</p>
@@ -427,7 +429,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
           onClick={() => setTab("reveals")}
           className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "reveals" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-indigo-50"}`}
         >
-          Beer reveals
+          {itemLabel} Reveals
         </button>
         <button
           type="button"
@@ -461,7 +463,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
 
       {tab === "reveals" && (
         <div className="space-y-4">
-          <p className="text-[var(--text-muted)] text-sm">Map beer numbers to actual names. Only you see this until you share results.</p>
+          <p className="text-[var(--text-muted)] text-sm">Map sample numbers to actual names. Only you see this until you share results.</p>
           <form onSubmit={addReveal} className="flex flex-wrap gap-2 items-end">
             <div>
               <label className="block text-[var(--text-muted)] text-xs mb-0.5">#</label>
@@ -475,7 +477,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               />
             </div>
             <div className="flex-1 min-w-[120px]">
-              <label className="block text-[var(--text-muted)] text-xs mb-0.5">Beer name</label>
+              <label className="block text-[var(--text-muted)] text-xs mb-0.5">Sample name</label>
               <input
                 type="text"
                 value={newBeerName}
@@ -678,7 +680,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
               {resultsSection === "overall" && (
                 <section>
                   <h2 className="text-lg font-bold text-[var(--text-heading)] mb-3">Overall leaderboard</h2>
-                  <p className="text-[var(--text-muted)] text-sm mb-3">Beers ranked by combined score (average of all criteria)</p>
+                  <p className="text-[var(--text-muted)] text-sm mb-3">Samples ranked by combined score (average of all criteria)</p>
                   <div className="mb-4">
                     <ResultsBarChart
                       rows={overallRanked}
