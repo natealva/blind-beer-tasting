@@ -79,7 +79,7 @@ export default function CreatePage() {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Nate's Beer Night"
-                  className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                  className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
                 />
               </div>
               <div>
@@ -110,7 +110,7 @@ export default function CreatePage() {
                     value={customTastingType}
                     onChange={(e) => setCustomTastingType(e.target.value)}
                     placeholder="e.g. Mezcal, Hot Sauce..."
-                    className="mt-2 w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                    className="mt-2 w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
                   />
                 )}
               </div>
@@ -132,10 +132,10 @@ export default function CreatePage() {
                   value={adminPassword}
                   onChange={(e) => setAdminPassword(e.target.value)}
                   placeholder="You'll use this to access the admin dashboard"
-                  className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+                  className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
                 />
               </div>
-              {error && <p className="text-amber-600 text-sm">{error}</p>}
+              {error && <p className="text-indigo-500 text-sm">{error}</p>}
               <button
                 type="submit"
                 disabled={loading}

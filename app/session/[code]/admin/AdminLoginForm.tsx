@@ -59,7 +59,7 @@ export default function AdminLoginForm({ code }: { code: string }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           placeholder="Enter session admin password"
-          className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+          className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
         />
       </div>
       {error && <p className="text-red-600 text-sm">{error}</p>}

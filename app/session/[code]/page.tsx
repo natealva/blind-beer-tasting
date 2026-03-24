@@ -141,7 +141,7 @@ export default function SessionJoinPage() {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center px-4 py-12">
         <div className="w-full max-w-[480px] mx-auto">
-          <p className="text-amber-600 mb-4" role="alert">{error}</p>
+          <p className="text-indigo-500 mb-4" role="alert">{error}</p>
           <Link href="/" className="text-[var(--text-muted)] hover:text-[var(--amber-gold)] underline">
             ← Back to home
           </Link>
@@ -176,10 +176,10 @@ export default function SessionJoinPage() {
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               placeholder="e.g. Alex"
-              className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+              className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
             />
           </div>
-          {error && <p className="text-amber-600 text-sm" role="alert">{error}</p>}
+          {error && <p className="text-indigo-500 text-sm" role="alert">{error}</p>}
           <button
             type="submit"
             disabled={loading}

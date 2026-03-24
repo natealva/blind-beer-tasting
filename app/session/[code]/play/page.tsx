@@ -43,14 +43,14 @@ function GroupBarChart({
                 right: "2px",
                 transform: "translateY(-50%)",
                 fontSize: "11px",
-                color: "#92400e",
+                color: "#374151",
               }}
             >
               {val}
             </span>
           ))}
         </div>
-        <div style={{ overflowX: "auto", borderLeft: "1px solid #d97706", borderBottom: "1px solid #d97706", flexGrow: 1 }}>
+        <div style={{ overflowX: "auto", borderLeft: "1px solid #6366f1", borderBottom: "1px solid #6366f1", flexGrow: 1 }}>
           <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
             <div style={{ position: "relative", height: "200px", display: "flex", alignItems: "flex-end", gap: "12px", padding: "0 8px" }}>
               {[0, 40, 80, 120, 160].map((topPx) => (
@@ -63,7 +63,7 @@ function GroupBarChart({
                 const barValue = hasPlayerRating ? playerScore! : groupAvg;
                 const barHeightPx = pxFromScore(barValue);
                 const groupLineBottomPx = groupAvg >= 0 && groupAvg <= 10 ? pxFromScore(groupAvg) : null;
-                const barColor = hasPlayerRating ? "#d97706" : "#fbbf24";
+                const barColor = hasPlayerRating ? "#6366f1" : "#818cf8";
                 return (
                   <div key={row.beerNumber} style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}>
                     {hasPlayerRating && groupLineBottomPx != null && groupLineBottomPx > 0 && (
@@ -78,7 +78,7 @@ function GroupBarChart({
               {rows.map((row) => (
                 <div
                   key={row.beerNumber}
-                  style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
+                  style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#374151", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
                 >
                   #{row.beerNumber}
                 </div>
@@ -313,7 +313,7 @@ export default function SessionPlayPage() {
   if (!sessionId || beerCount === 0) {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex items-center justify-center">
-        <p className="text-amber-600">Session not found.</p>
+        <p className="text-indigo-500">Session not found.</p>
       </div>
     );
   }
@@ -322,16 +322,16 @@ export default function SessionPlayPage() {
     return (
       <div className="min-h-screen bg-[var(--background)] text-[var(--text-body)] flex flex-col items-center justify-center" style={{ textAlign: "center", padding: "40px 20px" }}>
         <div style={{ fontSize: "48px" }}>🔒</div>
-        <h2 style={{ fontSize: "24px", fontWeight: 800, color: "#451a03", margin: "16px 0 8px" }}>
+        <h2 style={{ fontSize: "24px", fontWeight: 800, color: "#111827", margin: "16px 0 8px" }}>
           Your answers are locked
         </h2>
-        <p style={{ color: "#92400e", marginBottom: "24px" }}>
+        <p style={{ color: "#374151", marginBottom: "24px" }}>
           You&apos;ve already completed the reveal. Your scores can&apos;t be changed.
         </p>
         <Link
           href={`/session/${code}/reveal`}
           className="block w-full max-w-[320px] mx-auto rounded-xl font-bold py-3.5 text-center transition-colors"
-          style={{ background: "#f59e0b", color: "#451a03", padding: "14px 24px", borderRadius: "12px", fontWeight: 700, textDecoration: "none" }}
+          style={{ background: "#6366f1", color: "#111827", padding: "14px 24px", borderRadius: "12px", fontWeight: 700, textDecoration: "none" }}
         >
           View My Results →
         </Link>
@@ -558,10 +558,10 @@ function BeerRatingForm({
                   width: "40px",
                   height: "40px",
                   borderRadius: "8px",
-                  border: "2px solid #d97706",
-                  background: (idx === 0 ? tasteScore : crushScore) === n ? "#f59e0b" : "white",
+                  border: "2px solid #6366f1",
+                  background: (idx === 0 ? tasteScore : crushScore) === n ? "#6366f1" : "white",
                   fontWeight: (idx === 0 ? tasteScore : crushScore) === n ? 700 : 400,
-                  color: "#451a03",
+                  color: "#111827",
                   cursor: "pointer",
                 }}
               >
@@ -593,7 +593,7 @@ function BeerRatingForm({
             value={guess}
             onChange={(e) => setGuess(e.target.value)}
             placeholder="e.g. IPA from Local Brewery"
-            className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+            className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
           />
         )}
       </div>
@@ -605,12 +605,12 @@ function BeerRatingForm({
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Any tasting notes..."
           rows={3}
-          className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] resize-none"
+          className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2.5 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] resize-none"
         />
       </div>
 
       {inlineError && (
-        <p className="text-amber-600 text-sm" role="alert">
+        <p className="text-indigo-500 text-sm" role="alert">
           {inlineError}
         </p>
       )}

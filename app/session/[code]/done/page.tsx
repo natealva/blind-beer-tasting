@@ -35,10 +35,10 @@ function UserVsGroupChart({
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }}>
         <div style={{ position: "relative", height: "200px", width: "28px", flexShrink: 0 }}>
           {[10, 8, 6, 4, 2, 0].map((val, i) => (
-            <span key={val} style={{ position: "absolute", top: `${i * 40}px`, right: "2px", transform: "translateY(-50%)", fontSize: "11px", color: "#92400e" }}>{val}</span>
+            <span key={val} style={{ position: "absolute", top: `${i * 40}px`, right: "2px", transform: "translateY(-50%)", fontSize: "11px", color: "#374151" }}>{val}</span>
           ))}
         </div>
-        <div style={{ overflowX: "auto", borderLeft: "1px solid #d97706", borderBottom: "1px solid #d97706", flexGrow: 1 }}>
+        <div style={{ overflowX: "auto", borderLeft: "1px solid #6366f1", borderBottom: "1px solid #6366f1", flexGrow: 1 }}>
           <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
             <div style={{ position: "relative", height: "200px", display: "flex", alignItems: "flex-end", gap: "12px", padding: "0 8px" }}>
               {[0, 40, 80, 120, 160].map((topPx) => (
@@ -49,7 +49,7 @@ function UserVsGroupChart({
                 const groupAvg = getGroupAvg(row.beerNumber);
                 const groupLineBottomPx = groupAvg >= 0 && groupAvg <= 10 ? pxFromScore(groupAvg) : null;
                 const barHeightPx = pxFromScore(userScore);
-                const barColor = userScore >= groupAvg ? "#d97706" : "#fbbf24";
+                const barColor = userScore >= groupAvg ? "#6366f1" : "#818cf8";
                 return (
                   <div key={row.beerNumber} style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}>
                     {groupLineBottomPx != null && groupLineBottomPx > 0 && (
@@ -64,7 +64,7 @@ function UserVsGroupChart({
               {rows.map((row) => (
                 <div
                   key={row.beerNumber}
-                  style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
+                  style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#374151", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
                 >
                   #{row.beerNumber}
                 </div>
@@ -252,7 +252,7 @@ export default function SessionDonePage() {
                     const score = getScoreForCriterionIndex(r, idx as 0 | 1);
                     return (
                       <div key={c.id} className="text-[var(--text-body)]">
-                        {c.emoji} {c.label}: <span style={{ color: "#d97706", fontWeight: 700 }}>{score ?? "—"}</span>/10
+                        {c.emoji} {c.label}: <span style={{ color: "#6366f1", fontWeight: 700 }}>{score ?? "—"}</span>/10
                       </div>
                     );
                   })}
@@ -360,7 +360,7 @@ export default function SessionDonePage() {
         >
           🎉 Ready for the big reveal?
         </Link>
-        <p style={{ fontSize: 13, color: "#92400e", textAlign: "center", marginTop: 6 }}>
+        <p style={{ fontSize: 13, color: "#374151", textAlign: "center", marginTop: 6 }}>
           ⚠️ This will lock all your previous answers
         </p>
       </div>

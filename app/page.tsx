@@ -123,7 +123,7 @@ export default function Home() {
           style={{
             fontSize: "2.5rem",
             fontWeight: 800,
-            color: "#451a03",
+            color: "#111827",
             textAlign: "center",
             lineHeight: 1.3,
             marginBottom: "1.5rem",
@@ -132,7 +132,7 @@ export default function Home() {
           Blind{" "}
           <span
             style={{
-              color: "#d97706",
+              color: "#6366f1",
               transition: "opacity 0.3s ease",
               opacity: fade ? 1 : 0,
               display: "inline-block",
@@ -152,10 +152,10 @@ export default function Home() {
               setError(null);
             }}
             placeholder="Enter code e.g. BREW42"
-            className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-4 py-3 text-lg placeholder-amber-600 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] focus:border-[var(--amber-gold)] uppercase tracking-wider"
+            className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-4 py-3 text-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] focus:border-[var(--amber-gold)] uppercase tracking-wider"
           />
           {error && (
-            <p className="text-amber-600 text-center text-sm" role="alert">
+            <p className="text-indigo-500 text-center text-sm" role="alert">
               {error}
             </p>
           )}
@@ -184,7 +184,7 @@ export default function Home() {
                 setAdminError(null);
               }}
               placeholder="Session code"
-              className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2 text-sm placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] uppercase tracking-wider"
+              className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)] uppercase tracking-wider"
             />
             <input
               type="password"
@@ -194,10 +194,10 @@ export default function Home() {
                 setAdminError(null);
               }}
               placeholder="Admin password"
-              className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2 text-sm placeholder-amber-500 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
+              className="w-full rounded-lg bg-white border-2 border-[var(--border-amber)] text-[var(--text-heading)] px-3 py-2 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[var(--amber-gold)]"
             />
             {adminError && (
-              <p className="text-amber-600 text-sm" role="alert">{adminError}</p>
+              <p className="text-indigo-500 text-sm" role="alert">{adminError}</p>
             )}
             <button
               type="submit"

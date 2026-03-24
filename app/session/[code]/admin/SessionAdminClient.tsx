@@ -307,10 +307,10 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }} className="-mx-1 pb-2">
         <div style={{ position: "relative", height: "200px", width: "28px", flexShrink: 0 }}>
           {[10, 8, 6, 4, 2, 0].map((val, i) => (
-            <span key={val} style={{ position: "absolute", top: `${i * 40}px`, right: "2px", transform: "translateY(-50%)", fontSize: "11px", color: "#92400e" }}>{val}</span>
+            <span key={val} style={{ position: "absolute", top: `${i * 40}px`, right: "2px", transform: "translateY(-50%)", fontSize: "11px", color: "#374151" }}>{val}</span>
           ))}
         </div>
-        <div style={{ overflowX: "auto", borderLeft: "1px solid #d97706", borderBottom: "1px solid #d97706", flexGrow: 1 }}>
+        <div style={{ overflowX: "auto", borderLeft: "1px solid #6366f1", borderBottom: "1px solid #6366f1", flexGrow: 1 }}>
           <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
             <div style={{ position: "relative", height: "200px", display: "flex", alignItems: "flex-end", gap: "12px", padding: "0 8px" }}>
               {[0, 40, 80, 120, 160].map((topPx) => (
@@ -331,7 +331,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
             </div>
             <div style={{ display: "flex", gap: "12px", padding: "4px 8px 0" }}>
               {rows.map((row) => (
-                <div key={row.beerNumber} style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}>
+                <div key={row.beerNumber} style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#374151", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}>
                   {labelText(row)}
                 </div>
               ))}
@@ -425,35 +425,35 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
         <button
           type="button"
           onClick={() => setTab("reveals")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "reveals" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "reveals" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-indigo-50"}`}
         >
           Beer reveals
         </button>
         <button
           type="button"
           onClick={() => setTab("criteria")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "criteria" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "criteria" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-indigo-50"}`}
         >
           Criteria
         </button>
         <button
           type="button"
           onClick={() => setTab("players")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "players" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "players" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-indigo-50"}`}
         >
           Players ({players.length})
         </button>
         <button
           type="button"
           onClick={() => setTab("results")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "results" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "results" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-indigo-50"}`}
         >
           Results
         </button>
         <button
           type="button"
           onClick={() => setTab("scorecards")}
-          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "scorecards" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-amber-100"}`}
+          className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${tab === "scorecards" ? "bg-[var(--amber-gold)] text-[var(--button-text)]" : "text-[var(--text-muted)] hover:bg-indigo-50"}`}
         >
           Scorecards
         </button>
@@ -514,7 +514,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
         <div className="space-y-4">
           <h2 className="text-lg font-bold text-[var(--text-heading)]">Rating Criteria</h2>
           <p className="text-[var(--text-muted)] text-sm">Customize what players rate each beer on. Default is Taste and Crushability.</p>
-          <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-amber-800 text-sm">
+          <div className="rounded-lg bg-amber-50 border border-indigo-200 px-3 py-2 text-amber-800 text-sm">
             ⚠️ Change criteria before players start rating for best results
           </div>
           <div className="space-y-2">
@@ -683,7 +683,7 @@ export default function SessionAdminClient({ code, sessionId, sessionName, beerC
                     <ResultsBarChart
                       rows={overallRanked}
                       getValue={(row) => row.combined}
-                      barColor="bg-amber-500"
+                      barColor="bg-indigo-500"
                     />
                   </div>
                   <BeerRankTable rows={overallRanked} sortLabel="Combined" sortKey="combined" />

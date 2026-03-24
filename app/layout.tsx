@@ -9,8 +9,8 @@ const nunito = Nunito({
 });
 
 export const metadata: Metadata = {
-  title: "Blind Beer Tasting",
-  description: "Create or join a blind beer tasting session. Rate beers, then reveal.",
+  title: "Blind Tasting",
+  description: "Create or join a blind tasting session. Rate samples, then reveal.",
 };
 
 export default function RootLayout({

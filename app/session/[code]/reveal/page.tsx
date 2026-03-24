@@ -38,10 +38,10 @@ function UserVsGroupChart({
       <div style={{ display: "flex", alignItems: "flex-start", gap: "4px" }}>
         <div style={{ position: "relative", height: "200px", width: "28px", flexShrink: 0 }}>
           {[10, 8, 6, 4, 2, 0].map((val, i) => (
-            <span key={val} style={{ position: "absolute", top: `${i * 40}px`, right: "2px", transform: "translateY(-50%)", fontSize: "11px", color: "#92400e" }}>{val}</span>
+            <span key={val} style={{ position: "absolute", top: `${i * 40}px`, right: "2px", transform: "translateY(-50%)", fontSize: "11px", color: "#374151" }}>{val}</span>
           ))}
         </div>
-        <div style={{ overflowX: "auto", borderLeft: "1px solid #d97706", borderBottom: "1px solid #d97706", flexGrow: 1 }}>
+        <div style={{ overflowX: "auto", borderLeft: "1px solid #6366f1", borderBottom: "1px solid #6366f1", flexGrow: 1 }}>
           <div style={{ display: "inline-flex", flexDirection: "column", minWidth: "100%" }}>
             <div style={{ position: "relative", height: "200px", display: "flex", alignItems: "flex-end", gap: "12px", padding: "0 8px" }}>
               {[0, 40, 80, 120, 160].map((topPx) => (
@@ -52,7 +52,7 @@ function UserVsGroupChart({
                 const groupAvg = getGroupAvg(row.beerNumber);
                 const barHeightPx = pxFromScore(userScore);
                 const groupLineBottomPx = groupAvg >= 0 && groupAvg <= 10 ? pxFromScore(groupAvg) : null;
-                const barColor = userScore >= groupAvg ? "#d97706" : "#fbbf24";
+                const barColor = userScore >= groupAvg ? "#6366f1" : "#818cf8";
                 return (
                   <div key={row.beerNumber} style={{ position: "relative", height: "200px", width: `${BAR_WIDTH}px`, flexShrink: 0 }}>
                     {groupLineBottomPx != null && groupLineBottomPx > 0 && (
@@ -70,7 +70,7 @@ function UserVsGroupChart({
                 return (
                   <div
                     key={row.beerNumber}
-                    style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#92400e", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
+                    style={{ width: "44px", fontSize: "10px", textAlign: "center", color: "#374151", flexShrink: 0, wordBreak: "break-word", lineHeight: "1.2" }}
                   >
                     {label}
                   </div>
@@ -328,9 +328,9 @@ export default function SessionRevealPage() {
           top: 0,
           width: "560px",
           padding: "32px",
-          background: "#fffbeb",
+          background: "#ffffff",
           fontFamily: "Nunito, sans-serif",
-          color: "#451a03",
+          color: "#111827",
         }}
       >
         <div style={{ textAlign: "center", marginBottom: "24px" }}>
@@ -340,7 +340,7 @@ export default function SessionRevealPage() {
         </div>
 
         <div style={{ marginBottom: "20px" }}>
-          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY RANKINGS</div>
+          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#374151" }}>MY RANKINGS</div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${1 + criteria.length}, 1fr)`, gap: "12px", fontSize: "9px", lineHeight: "1.4" }}>
             <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
@@ -349,7 +349,7 @@ export default function SessionRevealPage() {
                   {idx + 1}. {row.name ?? `${itemLabel} #${row.beerNumber}`} — {row.combined.toFixed(1)}
                 </div>
               ))}
-              {myOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+              {myOverallRanked.length === 0 && <div style={{ color: "#374151" }}>—</div>}
             </div>
             {myRankedByCriterion.map(({ criterion, ranked }) => (
               <div key={criterion.id}>
@@ -359,24 +359,24 @@ export default function SessionRevealPage() {
                     {idx + 1}. {row.name ?? `${itemLabel} #${row.beerNumber}`} — {row.score.toFixed(1)}
                   </div>
                 ))}
-                {ranked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+                {ranked.length === 0 && <div style={{ color: "#374151" }}>—</div>}
               </div>
             ))}
           </div>
         </div>
 
         <div style={{ marginBottom: "20px" }}>
-          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>MY GUESSES</div>
+          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#374151" }}>MY GUESSES</div>
           <div style={{ fontSize: "9px", lineHeight: "1.4" }}>
             {myGuessesForScorecard.map((g, idx) => (
               <div key={idx} style={{ whiteSpace: "normal" }}>{g.beerName} · Guessed: {g.guess} · {g.result}</div>
             ))}
-            {myGuessesForScorecard.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+            {myGuessesForScorecard.length === 0 && <div style={{ color: "#374151" }}>—</div>}
           </div>
         </div>
 
         <div style={{ marginBottom: "20px" }}>
-          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#92400e" }}>GROUP RANKINGS</div>
+          <div style={{ fontSize: "14px", fontWeight: 800, marginBottom: "8px", color: "#374151" }}>GROUP RANKINGS</div>
           <div style={{ display: "grid", gridTemplateColumns: `repeat(${1 + criteria.length}, 1fr)`, gap: "12px", fontSize: "9px", lineHeight: "1.4" }}>
             <div>
               <div style={{ fontWeight: 700, marginBottom: "4px" }}>Overall</div>
@@ -385,7 +385,7 @@ export default function SessionRevealPage() {
                   {idx + 1}. {row.name} — {row.combined.toFixed(1)}
                 </div>
               ))}
-              {groupOverallRanked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+              {groupOverallRanked.length === 0 && <div style={{ color: "#374151" }}>—</div>}
             </div>
             {groupRankedByCriterion.map(({ criterion, ranked }) => (
               <div key={criterion.id}>
@@ -395,13 +395,13 @@ export default function SessionRevealPage() {
                     {idx + 1}. {row.name} — {row.score.toFixed(1)}
                   </div>
                 ))}
-                {ranked.length === 0 && <div style={{ color: "#92400e" }}>—</div>}
+                {ranked.length === 0 && <div style={{ color: "#374151" }}>—</div>}
               </div>
             ))}
           </div>
         </div>
 
-        <div style={{ textAlign: "center", marginTop: "24px", paddingTop: "16px", borderTop: "1px solid #fcd34d", fontSize: "11px", color: "#92400e" }}>
+        <div style={{ textAlign: "center", marginTop: "24px", paddingTop: "16px", borderTop: "1px solid #fcd34d", fontSize: "11px", color: "#374151" }}>
           Want to host your own tasting? Visit:<br />
           <strong>blind-beer-tasting.vercel.app</strong>
         </div>
